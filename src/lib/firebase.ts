@@ -21,12 +21,12 @@ import {
 } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || "AIzaSyD0sNDYKvUbwMZbqnAHoFvOwF1D5DIqF0c",
-  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || "va-car-demo.firebaseapp.com",
-  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || "va-car-demo",
-  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || "va-car-demo.firebasestorage.app",
-  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || "521333664887",
-  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || "1:521333664887:web:dc723be1b4498b7b2c6a72",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyD0sNDYKvUbwMZbqnAHoFvOwF1D5DIqF0c",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "va-car-demo.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "va-car-demo",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "va-car-demo.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "521333664887",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:521333664887:web:dc723be1b4498b7b2c6a72",
 };
 
 const isFirebaseConfigured = !!(
