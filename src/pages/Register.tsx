@@ -6,7 +6,7 @@ import { Mail, Lock, User, UserPlus, Chrome, AlertCircle } from "lucide-react";
 import { Button } from "../components/ui/Button";
 
 export default function Register() {
-  const { registerWithEmail, loginWithGoogle } = useAuth();
+  const { user, registerWithEmail, loginWithGoogle } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,6 +14,12 @@ export default function Register() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (user) {
+      navigate("/account");
+    }
+  }, [user, navigate]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

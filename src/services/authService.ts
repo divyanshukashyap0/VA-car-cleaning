@@ -1,5 +1,5 @@
 import { auth, googleProvider, isFirebaseConfigured } from "../lib/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, sendPasswordResetEmail, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, sendPasswordResetEmail, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { logAuditAction } from "./dbService";
 
 // Helper to log user login history and device specs
@@ -73,9 +73,19 @@ export const registerWithEmailAndPassword = async (email: string, pass: string, 
 // 3. Google OAuth Login
 export const loginWithGoogleOAuth = async (): Promise<any> => {
   if (isFirebaseConfigured) {
-    const credential = await signInWithPopup(auth, googleProvider);
-    await logLoginSession(credential.user);
-    return credential.user;
+    try {
+      const credential = await signInWithPopup(auth, googleProvider);
+      await logLoginSession(credential.user);
+      return credential.user;
+    } catch (error: any) {
+      if (error.code === 'auth/popup-blocked' || error.message?.includes('popup')) {
+        console.warn("Popup blocked by browser. Falling back to signInWithRedirect...");
+        await signInWithRedirect(auth, googleProvider);
+        // Return a promise that never resolves since page is redirecting
+        return new Promise(() => {});
+      }
+      throw error;
+    }
   } else {
     // Simulator Google Login
     const googleUser = {

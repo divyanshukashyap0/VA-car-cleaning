@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { updateProfile } from "firebase/auth";
+import { updateProfile, getRedirectResult } from "firebase/auth";
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import {
   loginWithEmailAndPassword,
@@ -106,6 +106,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Monitor auth changes
   useEffect(() => {
+    if (isFirebaseConfigured) {
+      getRedirectResult(auth)
+        .then(async (credential) => {
+          if (credential?.user) {
+            try {
+              const sessionDetails = {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language
+              };
+              await logAuditAction(`User ${credential.user.uid} signed in from ${sessionDetails.platform} (Redirect)`, null, sessionDetails);
+            } catch (err) {
+              console.error("Failed to log auth session after redirect:", err);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error("Error handling redirect sign-in result:", err);
+        });
+    }
+
     if (!isFirebaseConfigured && !localStorage.getItem("sim_registered_users")) {
       const seededSimUsers = [
         {

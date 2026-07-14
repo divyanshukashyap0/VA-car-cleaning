@@ -6,12 +6,18 @@ import { Mail, Lock, LogIn, Chrome, ArrowRight, ShieldCheck, AlertCircle } from 
 import { Button } from "../components/ui/Button";
 
 export default function Login() {
-  const { loginWithEmail, loginWithGoogle } = useAuth();
+  const { user, loginWithEmail, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (user) {
+      navigate("/account");
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
