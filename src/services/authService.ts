@@ -78,20 +78,8 @@ export const loginWithGoogleOAuth = (): Promise<any> => {
       return authPromise.then(async (credential) => {
         await logLoginSession(credential.user);
         return credential.user;
-      }).catch(async (error: any) => {
-        if (error.code === 'auth/popup-blocked' || error.message?.includes('popup')) {
-          console.warn("Popup blocked by browser. Falling back to signInWithRedirect...");
-          await signInWithRedirect(auth, googleProvider);
-          return new Promise(() => {}); // never resolves
-        }
-        throw error;
       });
     } catch (error: any) {
-      if (error.code === 'auth/popup-blocked' || error.message?.includes('popup')) {
-        console.warn("Popup blocked by browser. Falling back to signInWithRedirect...");
-        signInWithRedirect(auth, googleProvider);
-        return new Promise(() => {}); // never resolves
-      }
       throw error;
     }
   } else {
