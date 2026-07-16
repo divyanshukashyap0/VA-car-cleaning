@@ -140,7 +140,7 @@ export default function Admin() {
     try {
       if (isFirebaseConfigured) {
         try {
-          const querySnapshot = await getDocs(collection(db, "users"));
+          const querySnapshot = await db.collection("users").get();
           const fbUsersList: AdminUser[] = [];
           querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();

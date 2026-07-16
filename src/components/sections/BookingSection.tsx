@@ -3,8 +3,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { Calendar, Clock, User, Phone, Settings, ShieldCheck, MapPin, Info } from "lucide-react";
 import { Button } from "../ui/Button";
 import { servicePrices } from "../../lib/prices";
+import { useAuth } from "../../context/AuthContext";
+import { createBooking } from "../../services/dbService";
 
 export default function BookingSection() {
+  const { user, addAppointment } = useAuth();
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [service, setService] = useState("");
@@ -12,14 +16,103 @@ export default function BookingSection() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [isBooked, setIsBooked] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const getServiceInfo = (id: string) => {
+    switch (id) {
+      case "exterior":
+        return { name: "Exterior Wash", info: servicePrices.exteriorWash };
+      case "interior":
+        return { name: "Interior Cleaning", info: servicePrices.interiorCleaning };
+      case "foam":
+        return { name: "Foam Wash", info: servicePrices.foamWash };
+      case "wax":
+        return { name: "Wax Polish", info: servicePrices.waxPolish };
+      case "dashboard":
+        return { name: "Dashboard Cleaning", info: servicePrices.dashboardCleaning };
+      case "premium":
+        return { name: "Premium Detailing", info: servicePrices.premiumDetailing };
+      default:
+        return { name: "Premium Detailing", info: servicePrices.premiumDetailing };
+    }
+  };
+
+  const getVehicleLabel = (val: string) => {
+    switch (val) {
+      case "hatchback":
+        return "Hatchback (Car)";
+      case "sedan":
+        return "Sedan (Car)";
+      case "suv":
+        return "SUV / MUV (Car)";
+      case "bike":
+        return "Motorcycle / Scooter (Bike)";
+      case "superbike":
+        return "Premium Superbike (Bike)";
+      default:
+        return val;
+    }
+  };
+
+  const getTimeSlotLabel = (val: string) => {
+    switch (val) {
+      case "morning":
+        return "Morning (8:00 AM - 12:00 PM)";
+      case "afternoon":
+        return "Afternoon (12:00 PM - 4:00 PM)";
+      case "evening":
+        return "Evening (4:00 PM - 7:00 PM)";
+      default:
+        return val;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone || !service || !vehicleType || !date || !time) {
       alert("Please fill in all booking details!");
       return;
     }
-    setIsBooked(true);
+
+    setSubmitting(true);
+    try {
+      const serviceInfo = getServiceInfo(service);
+      const vehicleLabel = getVehicleLabel(vehicleType);
+      const timeSlotLabel = getTimeSlotLabel(time);
+      const cId = user ? user.uid : "guest-" + Math.random().toString(36).substring(2, 9);
+
+      await createBooking({
+        customerId: cId,
+        customerName: name,
+        customerPhone: phone,
+        vehicleId: "custom",
+        vehicleDetails: vehicleLabel,
+        serviceId: service,
+        serviceName: serviceInfo.name,
+        scheduledDate: date,
+        timeSlot: timeSlotLabel,
+        price: serviceInfo.info.price,
+        notes: "Booking submitted via Home Page Quick Form",
+        address: "Doorstep detailing service location provided upon confirmation call"
+      });
+
+      if (user) {
+        await addAppointment(
+          serviceInfo.name,
+          vehicleLabel,
+          date,
+          timeSlotLabel,
+          serviceInfo.info.formatted
+        );
+      }
+
+      setIsBooked(true);
+    } catch (err) {
+      console.error("Quick booking submission failed:", err);
+      alert("Failed to submit booking request. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -157,9 +250,10 @@ export default function BookingSection() {
                   <div className="md:col-span-2 pt-2">
                     <button
                       type="submit"
-                      className="w-full bg-[#F4B400] hover:bg-[#ffe258] text-dark font-heading font-extrabold py-4 px-6 rounded-2xl transition-all duration-300 text-sm uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                      disabled={submitting}
+                      className="w-full bg-[#F4B400] hover:bg-[#ffe258] text-dark font-heading font-extrabold py-4 px-6 rounded-2xl transition-all duration-300 text-sm uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Book Now <span className="text-base leading-none">→</span>
+                      {submitting ? "Submitting booking..." : <>Book Now <span className="text-base leading-none">→</span></>}
                     </button>
                   </div>
                 </motion.form>
