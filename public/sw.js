@@ -34,6 +34,9 @@ self.addEventListener("activate", (event) => {
 
 // Fetch Event - Serve cached assets or fetch from network
 self.addEventListener("fetch", (event) => {
+  // Only intercept GET requests (avoid POST/PUT/DELETE throwing errors on cache.put)
+  if (event.request.method !== "GET") return;
+
   // Only intercept HTTP/HTTPS requests (avoid chrome-extension or other schemes)
   if (!event.request.url.startsWith(self.location.origin)) return;
 
@@ -63,6 +66,12 @@ self.addEventListener("fetch", (event) => {
           if (event.request.mode === "navigate") {
             return caches.match("/index.html");
           }
+          // Return a 503 Service Unavailable response instead of undefined to avoid service worker TypeError
+          return new Response("Service Unavailable (Offline)", {
+            status: 503,
+            statusText: "Service Unavailable",
+            headers: new Headers({ "Content-Type": "text/plain" })
+          });
         });
     })
   );
