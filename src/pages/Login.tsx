@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, LogIn, Chrome, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { isFirebaseConfigured } from "../lib/firebase";
 
 export default function Login() {
   const { user, loginWithEmail, loginWithGoogle } = useAuth();
@@ -38,7 +39,9 @@ export default function Login() {
     setErrorMsg("");
     loginWithGoogle()
       .then(() => {
-        navigate("/account");
+        if (!isFirebaseConfigured) {
+          navigate("/account");
+        }
       })
       .catch((err: any) => {
         setErrorMsg(err.message || "Google Authentication failed.");

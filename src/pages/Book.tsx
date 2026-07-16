@@ -124,7 +124,8 @@ export default function BookPage() {
         scheduledDate: data.bookingDate,
         timeSlot: data.bookingTime,
         price: bookingPrice,
-        notes: data.notes
+        notes: data.notes,
+        address: data.address
       });
       await addAppointment(sInfo.name, finalVehicle, data.bookingDate, data.bookingTime, sInfo.price);
     }

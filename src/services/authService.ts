@@ -74,11 +74,7 @@ export const registerWithEmailAndPassword = async (email: string, pass: string, 
 export const loginWithGoogleOAuth = (): Promise<any> => {
   if (isFirebaseConfigured) {
     try {
-      const authPromise = signInWithPopup(auth, googleProvider);
-      return authPromise.then(async (credential) => {
-        await logLoginSession(credential.user);
-        return credential.user;
-      });
+      return signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
       throw error;
     }

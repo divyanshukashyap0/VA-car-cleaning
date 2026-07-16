@@ -4,7 +4,20 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db, isFirebaseConfigured } from "../lib/firebase";
 import { collection, getDocs, doc, setDoc } from "firebase/firestore";
-import { getAuditLogs, getAllBookings, updateBookingStatus, getJobApplications, updateJobStatus as updateJobStatusInDb, getAllReviews, getBeforeAfterSettings, updateBeforeAfterSettings } from "../services/dbService";
+import { 
+  getAuditLogs, 
+  getAllBookings, 
+  updateBookingStatus, 
+  getJobApplications, 
+  updateJobStatus as updateJobStatusInDb, 
+  getAllReviews, 
+  getBeforeAfterSettings, 
+  updateBeforeAfterSettings,
+  createOrUpdateEmployee,
+  deleteEmployeeProfile,
+  getAllEmployees,
+  updateEmployeeProfile
+} from "../services/dbService";
 import NotificationCenterTab from "../components/admin/NotificationCenterTab";
 import {
   ShieldAlert,
@@ -24,7 +37,9 @@ import {
   Sparkles,
   Info,
   Clipboard,
-  Bell
+  Bell,
+  Plus,
+  UserCheck
 } from "lucide-react";
 import { servicePrices } from "../lib/prices";
 
@@ -39,6 +54,10 @@ interface AdminAppointment {
   price: string;
   status: string;
   address: string;
+  assignedEmployee?: string;
+  assignedEmployeeName?: string;
+  crewArrivingDate?: string;
+  crewArrivingTime?: string;
 }
 
 interface AdminUser {
@@ -73,7 +92,7 @@ interface AdminReview {
 
 export default function Admin() {
   const { user, profile, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<"stats" | "appointments" | "users" | "jobs" | "services" | "reviews" | "logs" | "notifications">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "appointments" | "users" | "jobs" | "services" | "reviews" | "logs" | "notifications" | "staff">("stats");
 
   // Load state variables
   const [appointments, setAppointments] = useState<AdminAppointment[]>([]);
@@ -86,6 +105,30 @@ export default function Admin() {
     afterImage: "",
     useSeparateImages: false
   });
+
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<any | null>(null);
+
+  // Staff Form state
+  const [staffName, setStaffName] = useState("");
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffPhone, setStaffPhone] = useState("");
+  const [staffAddress, setStaffAddress] = useState("");
+  const [staffPhoto, setStaffPhoto] = useState("");
+  const [staffDept, setStaffDept] = useState("Detailing Crew");
+  const [staffSalary, setStaffSalary] = useState("₹18,000/month");
+  const [staffBank, setStaffBank] = useState("");
+  const [staffKYC, setStaffKYC] = useState<"Pending" | "Verified" | "Rejected">("Verified");
+  const [staffAvail, setStaffAvail] = useState<"online" | "offline">("online");
+
+  // Crew assignment modal state
+  const [selectedBookingForAssign, setSelectedBookingForAssign] = useState<AdminAppointment | null>(null);
+  const [assignCrewId, setAssignCrewId] = useState("");
+  const [assignArrivalDate, setAssignArrivalDate] = useState("");
+  const [assignArrivalTime, setAssignArrivalTime] = useState("");
+  const [viewingBookingDetails, setViewingBookingDetails] = useState<AdminAppointment | null>(null);
 
   // Service form bindings
   const [servicePriceInputs, setServicePriceInputs] = useState<Record<string, number>>({});
@@ -189,7 +232,11 @@ export default function Admin() {
         time: b.timeSlot,
         price: `₹${b.price}`,
         status: b.bookingStatus,
-        address: b.notes || ""
+        address: b.notes || "",
+        assignedEmployee: b.assignedEmployee || "",
+        assignedEmployeeName: b.assignedEmployeeName || "",
+        crewArrivingDate: b.crewArrivingDate || "",
+        crewArrivingTime: b.crewArrivingTime || ""
       }));
       setAppointments(mapped);
     } catch (err) {
@@ -234,6 +281,96 @@ export default function Admin() {
     }
   };
 
+  const fetchAdminEmployees = async () => {
+    setEmployeesLoading(true);
+    try {
+      const data = await getAllEmployees();
+      setEmployees(data);
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
+
+  const handleStaffSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffName || !staffEmail || !staffPhone || !staffAddress) {
+      alert("Please fill in Name, Email, Mobile Number, and Address.");
+      return;
+    }
+
+    try {
+      if (editingStaff) {
+        await updateEmployeeProfile(editingStaff.id, {
+          name: staffName,
+          email: staffEmail,
+          photo: staffPhoto || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
+          phone: staffPhone,
+          address: staffAddress,
+          department: staffDept,
+          salary: staffSalary,
+          bankDetails: staffBank,
+          KYCStatus: staffKYC,
+          availability: staffAvail
+        });
+        
+        if (!editingStaff.id.startsWith("emp-")) {
+          await setDoc(doc(db, "users", editingStaff.id), {
+            name: staffName,
+            contactNumber: staffPhone,
+            photoURL: staffPhoto || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+          }, { merge: true });
+        }
+      } else {
+        await createOrUpdateEmployee({
+          name: staffName,
+          email: staffEmail,
+          photo: staffPhoto || undefined,
+          phone: staffPhone,
+          address: staffAddress,
+          department: staffDept,
+          salary: staffSalary,
+          bankDetails: staffBank || undefined,
+          KYCStatus: staffKYC,
+          availability: staffAvail
+        });
+      }
+
+      setStaffName("");
+      setStaffEmail("");
+      setStaffPhone("");
+      setStaffAddress("");
+      setStaffPhoto("");
+      setStaffDept("Detailing Crew");
+      setStaffSalary("₹18,000/month");
+      setStaffBank("");
+      setStaffKYC("Verified");
+      setStaffAvail("online");
+
+      setShowAddStaffModal(false);
+      setEditingStaff(null);
+      await fetchAdminEmployees();
+    } catch (err: any) {
+      console.error("Error saving staff profile:", err);
+      alert("Failed to save staff profile: " + err.message);
+    }
+  };
+
+  const handleDeleteStaff = async (empId: string) => {
+    if (!window.confirm("Are you sure you want to remove this staff member? This will remove their crew profile and demote their user account back to a customer.")) {
+      return;
+    }
+
+    try {
+      await deleteEmployeeProfile(empId);
+      await fetchAdminEmployees();
+    } catch (err: any) {
+      console.error("Error deleting staff:", err);
+      alert("Failed to remove staff member: " + err.message);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "logs") {
       fetchAuditLogs();
@@ -246,6 +383,9 @@ export default function Admin() {
     }
     if (activeTab === "reviews") {
       fetchAdminReviews();
+    }
+    if (activeTab === "staff") {
+      fetchAdminEmployees();
     }
   }, [activeTab]);
 
@@ -262,6 +402,9 @@ export default function Admin() {
 
     // 4. Reviews Setup
     fetchAdminReviews();
+
+    // 5. Staff Directory Setup
+    fetchAdminEmployees();
 
     // Load price, image and description inputs
     const loadedPrices: Record<string, number> = {};
@@ -321,6 +464,41 @@ export default function Admin() {
       await fetchAdminBookings();
     } catch (err) {
       console.error("Error updating booking status:", err);
+    }
+  };
+
+  const handleAssignCrew = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBookingForAssign) return;
+    if (!assignCrewId || !assignArrivalDate || !assignArrivalTime) {
+      alert("Please select a crew member and specify both arrival date and time.");
+      return;
+    }
+
+    const emp = employees.find((x) => x.id === assignCrewId);
+    if (!emp) {
+      alert("Selected crew member not found.");
+      return;
+    }
+
+    try {
+      const { assignEmployee: dbAssignEmployee } = await import("../services/dbService");
+      await dbAssignEmployee(
+        selectedBookingForAssign.id,
+        emp.id,
+        emp.name,
+        assignArrivalDate,
+        assignArrivalTime
+      );
+      
+      setSelectedBookingForAssign(null);
+      setAssignCrewId("");
+      setAssignArrivalDate("");
+      setAssignArrivalTime("");
+      await fetchAdminBookings();
+    } catch (err: any) {
+      console.error("Error assigning crew member:", err);
+      alert("Failed to assign crew member: " + err.message);
     }
   };
 
@@ -478,6 +656,17 @@ export default function Admin() {
               <Users size={16} />
               Client Directory
             </button>
+            {profile?.role !== "staff" && (
+              <button
+                onClick={() => setActiveTab("staff")}
+                className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all cursor-pointer ${
+                  activeTab === "staff" ? "bg-primary text-white shadow shadow-primary/20" : "hover:bg-gray-50 text-gray-500"
+                }`}
+              >
+                <UserCheck size={16} />
+                Staff Directory
+              </button>
+            )}
             <button
               onClick={() => setActiveTab("jobs")}
               className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all cursor-pointer ${
@@ -600,14 +789,37 @@ export default function Admin() {
                     {appointments.map((a) => (
                       <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                         <td className="py-4 pr-4">
-                          <div className="font-bold text-dark">{a.name}</div>
-                          <div className="text-[10px] text-gray-400 font-mono mt-0.5">{a.phone}</div>
+                          <button
+                            onClick={() => setViewingBookingDetails(a)}
+                            className="text-left cursor-pointer hover:text-primary transition-colors group block"
+                          >
+                            <div className="font-bold text-dark group-hover:text-primary">{a.name}</div>
+                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{a.phone}</div>
+                            <div className="text-[10px] text-primary font-bold mt-1 group-hover:underline">
+                              View details →
+                            </div>
+                          </button>
                         </td>
                         <td className="py-4 pr-4 font-semibold text-gray-700">{a.service}</td>
                         <td className="py-4 pr-4 font-mono text-gray-500">{a.vehicle}</td>
-                        <td className="py-4 pr-4">
-                          <div className="font-semibold text-gray-700">{a.date}</div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">{a.time}</div>
+                        <td className="py-4 pr-4 space-y-1.5">
+                          <div>
+                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Scheduled</div>
+                            <div className="font-semibold text-gray-700">{a.date}</div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">{a.time}</div>
+                          </div>
+                          {a.crewArrivingDate ? (
+                            <div className="pt-1.5 border-t border-gray-100">
+                              <div className="text-[10px] text-[#0f3b94] font-black uppercase tracking-wider">Crew Arriving</div>
+                              <div className="font-bold text-dark text-[11px]">{a.crewArrivingDate}</div>
+                              <div className="text-[10px] text-gray-500 mt-0.5">{a.crewArrivingTime}</div>
+                              <div className="text-[10px] text-[#0f3b94] font-semibold mt-0.5">({a.assignedEmployeeName})</div>
+                            </div>
+                          ) : (
+                            <div className="pt-1.5 border-t border-gray-100 text-gray-400 text-[10px] font-semibold">
+                              Crew: Unassigned
+                            </div>
+                          )}
                         </td>
                         <td className="py-4 pr-4 text-right font-black text-dark">{a.price}</td>
                         <td className="py-4 pr-4">
@@ -623,14 +835,28 @@ export default function Admin() {
                             {a.status}
                           </span>
                         </td>
-                        <td className="py-4 text-right space-x-1.5 shrink-0">
+                        <td className="py-4 text-right space-y-1.5 shrink-0">
+                          {a.status !== "Completed" && a.status !== "Cancelled" && (
+                            <button
+                              onClick={() => {
+                                setSelectedBookingForAssign(a);
+                                setAssignCrewId(a.assignedEmployee || "");
+                                setAssignArrivalDate(a.crewArrivingDate || a.date);
+                                setAssignArrivalTime(a.crewArrivingTime || "");
+                              }}
+                              className="bg-purple-50 hover:bg-purple-100 text-purple-600 py-1 px-2.5 rounded-lg font-bold text-[10px] cursor-pointer block w-full text-center"
+                            >
+                              {a.assignedEmployee ? "Reassign Crew" : "Assign Crew"}
+                            </button>
+                          )}
+                          
                           {a.status === "Pending" && (
-                            <>
+                            <div className="flex gap-1.5 justify-end">
                               <button
                                 onClick={() => updateAppointmentStatus(a.id, "In Progress")}
                                 className="bg-blue-50 hover:bg-blue-100 text-blue-600 py-1 px-2.5 rounded-lg font-bold text-[10px] cursor-pointer"
                               >
-                                Dispatch Crew
+                                Dispatch
                               </button>
                               <button
                                 onClick={() => updateAppointmentStatus(a.id, "Cancelled")}
@@ -638,18 +864,29 @@ export default function Admin() {
                               >
                                 Cancel
                               </button>
-                            </>
+                            </div>
                           )}
+                          
+                          {a.status === "Assigned" && (
+                            <button
+                              onClick={() => updateAppointmentStatus(a.id, "In Progress")}
+                              className="bg-blue-50 hover:bg-blue-100 text-blue-600 py-1 px-2.5 rounded-lg font-bold text-[10px] cursor-pointer block w-full text-center animate-pulse"
+                            >
+                              Dispatch Crew
+                            </button>
+                          )}
+                          
                           {a.status === "In Progress" && (
                             <button
                               onClick={() => updateAppointmentStatus(a.id, "Completed")}
-                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 py-1 px-2.5 rounded-lg font-bold text-[10px] cursor-pointer"
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 py-1 px-2.5 rounded-lg font-bold text-[10px] cursor-pointer block w-full text-center"
                             >
                               Complete Detox
                             </button>
                           )}
+                          
                           {(a.status === "Completed" || a.status === "Cancelled") && (
-                            <span className="text-[10px] text-gray-300 font-bold uppercase">Locked</span>
+                            <span className="text-[10px] text-gray-300 font-bold uppercase block text-center">Locked</span>
                           )}
                         </td>
                       </tr>
@@ -1001,9 +1238,524 @@ export default function Admin() {
             <NotificationCenterTab />
           )}
 
+          {/* STAFF PANEL */}
+          {activeTab === "staff" && (
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+              <div className="flex flex-wrap justify-between items-center gap-4">
+                <div>
+                  <h3 className="font-heading font-extrabold text-dark text-lg">Staff Crew Directory</h3>
+                  <p className="text-gray-400 text-xs mt-0.5">Manage details, departments, salary, and status of service detailers.</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingStaff(null);
+                    setShowAddStaffModal(true);
+                  }}
+                  className="bg-primary hover:bg-[#0b327b] text-white font-bold py-2.5 px-5 rounded-xl text-xs shadow-md flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus size={14} />
+                  Add Staff Member
+                </button>
+              </div>
+
+              {employeesLoading ? (
+                <div className="py-20 flex justify-center items-center">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : employees.length === 0 ? (
+                <div className="py-20 text-center text-gray-400 space-y-2 border border-dashed border-gray-200 rounded-2xl">
+                  <UserCheck size={36} className="mx-auto text-gray-300" />
+                  <p className="font-semibold text-sm">No Staff Registered</p>
+                  <p className="text-xs">Click the button above to register your first crew member.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-gray-500 border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider">
+                        <th className="pb-3 pr-4">Staff Details</th>
+                        <th className="pb-3 pr-4">Contact Info</th>
+                        <th className="pb-3 pr-4">Department & Salary</th>
+                        <th className="pb-3 pr-4 text-center">KYC & Availability</th>
+                        <th className="pb-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {employees.map((emp) => (
+                        <tr key={emp.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                          <td className="py-4 pr-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 shrink-0">
+                                <img
+                                  src={emp.photo || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"}
+                                  alt={emp.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div>
+                                <div className="font-bold text-dark text-sm">{emp.name}</div>
+                                <div className="text-[10px] text-gray-400 font-mono mt-0.5">{emp.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 pr-4">
+                            <div className="font-semibold text-gray-700">{emp.phone}</div>
+                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{emp.email}</div>
+                            <div className="text-[10px] text-gray-500 mt-1 max-w-[200px] truncate" title={emp.address}>{emp.address}</div>
+                          </td>
+                          <td className="py-4 pr-4">
+                            <div className="font-bold text-dark">{emp.department}</div>
+                            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">{emp.salary}</div>
+                          </td>
+                          <td className="py-4 pr-4 text-center space-y-1">
+                            <div>
+                              <span className={`inline-block text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full ${
+                                emp.KYCStatus === "Verified"
+                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                  : emp.KYCStatus === "Rejected"
+                                  ? "bg-rose-50 text-rose-600 border border-rose-100"
+                                  : "bg-amber-50 text-amber-600 border border-amber-100"
+                              }`}>
+                                KYC: {emp.KYCStatus || "Pending"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className={`inline-block text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full ${
+                                emp.availability === "online"
+                                  ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                  : "bg-gray-100 text-gray-500 border border-gray-200"
+                              }`}>
+                                {emp.availability === "online" ? "Active" : "Offline"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-4 text-right space-x-2">
+                            <button
+                              onClick={() => {
+                                setEditingStaff(emp);
+                                setStaffName(emp.name || "");
+                                setStaffEmail(emp.email || "");
+                                setStaffPhone(emp.phone || "");
+                                setStaffAddress(emp.address || "");
+                                setStaffPhoto(emp.photo || "");
+                                setStaffDept(emp.department || "Detailing Crew");
+                                setStaffSalary(emp.salary || "₹18,000/month");
+                                setStaffBank(emp.bankDetails || "");
+                                setStaffKYC(emp.KYCStatus || "Verified");
+                                setStaffAvail(emp.availability || "online");
+                                setShowAddStaffModal(true);
+                              }}
+                              className="text-xs font-bold text-primary hover:underline cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStaff(emp.id)}
+                              className="text-xs font-bold text-rose-500 hover:underline cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
       </div>
+
+      {showAddStaffModal && (
+        <div className="fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100 space-y-6"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="font-heading font-extrabold text-dark text-xl">
+                {editingStaff ? "Edit Staff Details" : "Add New Staff Crew"}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddStaffModal(false);
+                  setEditingStaff(null);
+                  setStaffName("");
+                  setStaffEmail("");
+                  setStaffPhone("");
+                  setStaffAddress("");
+                  setStaffPhoto("");
+                  setStaffDept("Detailing Crew");
+                  setStaffSalary("₹18,000/month");
+                  setStaffBank("");
+                  setStaffKYC("Verified");
+                  setStaffAvail("online");
+                }}
+                className="text-gray-400 hover:text-dark text-sm font-bold uppercase transition-colors font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleStaffSubmit} className="space-y-4 text-left">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Rahul Sharma"
+                  value={staffName}
+                  onChange={(e) => setStaffName(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    disabled={!!editingStaff}
+                    placeholder="name@example.com"
+                    value={staffEmail}
+                    onChange={(e) => setStaffEmail(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark disabled:opacity-50"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mobile Number</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="+91 XXXXX XXXXX"
+                    value={staffPhone}
+                    onChange={(e) => setStaffPhone(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Home/Base Address</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Street address, City, Pin code"
+                  value={staffAddress}
+                  onChange={(e) => setStaffAddress(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Profile Picture URL</label>
+                <input
+                  type="text"
+                  placeholder="https://images.unsplash.com/... (optional)"
+                  value={staffPhoto}
+                  onChange={(e) => setStaffPhoto(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Department</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Detailing Crew"
+                    value={staffDept}
+                    onChange={(e) => setStaffDept(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Monthly Salary</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹18,000/month"
+                    value={staffSalary}
+                    onChange={(e) => setStaffSalary(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Bank Details</label>
+                <input
+                  type="text"
+                  placeholder="Bank name, A/C No., IFSC Code (optional)"
+                  value={staffBank}
+                  onChange={(e) => setStaffBank(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">KYC Verification Status</label>
+                  <select
+                    value={staffKYC}
+                    onChange={(e: any) => setStaffKYC(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark cursor-pointer"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Verified">Verified</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Availability Status</label>
+                  <select
+                    value={staffAvail}
+                    onChange={(e: any) => setStaffAvail(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark cursor-pointer"
+                  >
+                    <option value="online">Online / Active</option>
+                    <option value="offline">Offline / Rest</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-primary hover:bg-[#0b327b] text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md mt-6 cursor-pointer"
+              >
+                {editingStaff ? "Update Staff Profile" : "Create Staff Profile"}
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {selectedBookingForAssign && (
+        <div className="fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100 space-y-6"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="font-heading font-extrabold text-dark text-xl">Assign Detailing Crew</h3>
+              <button
+                onClick={() => {
+                  setSelectedBookingForAssign(null);
+                  setAssignCrewId("");
+                  setAssignArrivalDate("");
+                  setAssignArrivalTime("");
+                }}
+                className="text-gray-400 hover:text-dark text-sm font-bold uppercase transition-colors font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleAssignCrew} className="space-y-4 text-left">
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-xs space-y-1">
+                <div className="font-bold text-dark">Booking ID: <span className="font-mono text-gray-500 font-normal">{selectedBookingForAssign.id}</span></div>
+                <div className="font-bold text-dark">Customer: <span className="font-normal text-gray-600">{selectedBookingForAssign.name}</span></div>
+                <div className="font-bold text-dark">Service: <span className="font-normal text-gray-600">{selectedBookingForAssign.service}</span></div>
+                <div className="font-bold text-dark">Scheduled: <span className="font-normal text-gray-600">{selectedBookingForAssign.date} at {selectedBookingForAssign.time}</span></div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Select Detailing Crew Member</label>
+                <select
+                  required
+                  value={assignCrewId}
+                  onChange={(e) => setAssignCrewId(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark cursor-pointer"
+                >
+                  <option value="" disabled>Choose a crew member</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.department} - {emp.availability === "online" ? "Active" : "Offline"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Arriving Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={assignArrivalDate}
+                    onChange={(e) => setAssignArrivalDate(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark cursor-pointer"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Arriving Time Slot</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 10:30 AM"
+                    value={assignArrivalTime}
+                    onChange={(e) => setAssignArrivalTime(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-primary hover:bg-[#0b327b] text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md mt-6 cursor-pointer"
+              >
+                Assign & Schedule Arrival
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {viewingBookingDetails && (
+        <div className="fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-6 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="font-heading font-extrabold text-dark text-xl">Booking Detail Sheet</h3>
+              <button
+                onClick={() => setViewingBookingDetails(null)}
+                className="text-gray-400 hover:text-dark text-sm font-bold uppercase transition-colors font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-5 text-left">
+              {/* Header Status & Price */}
+              <div className="flex justify-between items-center bg-gray-50 border border-gray-100 p-4 rounded-2xl">
+                <div>
+                  <div className="text-[10px] text-gray-400 font-bold uppercase">Booking ID</div>
+                  <div className="font-mono font-bold text-dark text-xs">{viewingBookingDetails.id}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-gray-400 font-bold uppercase">Status</div>
+                  <span className={`inline-block text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full border ${
+                    viewingBookingDetails.status === "Completed"
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                      : viewingBookingDetails.status === "Pending"
+                      ? "bg-amber-50 text-amber-600 border-amber-100"
+                      : viewingBookingDetails.status === "Cancelled"
+                      ? "bg-rose-50 text-rose-600 border-rose-100"
+                      : "bg-blue-50 text-blue-600 border-blue-100"
+                  }`}>
+                    {viewingBookingDetails.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Service Details */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">1. Service & Vehicle</h4>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-gray-400 block">Package Selected</span>
+                    <span className="font-extrabold text-dark text-sm">{viewingBookingDetails.service}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block">Price / Fee</span>
+                    <span className="font-black text-dark text-sm">{viewingBookingDetails.price}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-400 block">Vehicle Specification</span>
+                    <span className="font-mono text-gray-700 font-bold">{viewingBookingDetails.vehicle}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scheduled Date/Time */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">2. Scheduled Date & Time</h4>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-gray-400 block">Scheduled Date</span>
+                    <span className="font-semibold text-gray-700">{viewingBookingDetails.date}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block">Time Slot</span>
+                    <span className="font-semibold text-gray-700">{viewingBookingDetails.time}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Details */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">3. Customer Profile & Address</h4>
+                <div className="space-y-2 text-xs">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-gray-400 block">Full Name</span>
+                      <span className="font-extrabold text-dark">{viewingBookingDetails.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Contact Number</span>
+                      <span className="font-bold text-gray-700">{viewingBookingDetails.phone}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block">Service Doorstep Address</span>
+                    <span className="font-semibold text-dark leading-relaxed block bg-amber-50/50 border border-amber-100/50 p-2.5 rounded-xl mt-1">
+                      {viewingBookingDetails.address || "No address details specified"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailing Crew Assignment */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">4. Dispatch & Crew Assignment</h4>
+                {viewingBookingDetails.crewArrivingDate ? (
+                  <div className="bg-[#0f3b94]/5 border border-[#0f3b94]/10 rounded-2xl p-4 text-xs space-y-2 text-[#0f3b94]">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="opacity-80 block font-semibold">Assigned Detailer</span>
+                        <span className="font-black text-sm">{viewingBookingDetails.assignedEmployeeName}</span>
+                      </div>
+                      <div>
+                        <span className="opacity-80 block font-semibold">Crew ID</span>
+                        <span className="font-mono font-bold">{viewingBookingDetails.assignedEmployee}</span>
+                      </div>
+                      <div className="col-span-2 pt-1 border-t border-[#0f3b94]/10 flex justify-between">
+                        <div>
+                          <span className="opacity-80 block font-semibold">Expected Arrival Date</span>
+                          <span className="font-extrabold">{viewingBookingDetails.crewArrivingDate}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="opacity-80 block font-semibold">Arrival Time Slot</span>
+                          <span className="font-extrabold">{viewingBookingDetails.crewArrivingTime}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-center text-xs text-gray-400 font-semibold uppercase tracking-wider">
+                    Crew Assignment: Pending
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setViewingBookingDetails(null)}
+              className="w-full bg-dark hover:bg-dark/80 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md mt-6 cursor-pointer"
+            >
+              Acknowledge & Close
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

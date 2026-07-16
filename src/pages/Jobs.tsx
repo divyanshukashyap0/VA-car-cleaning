@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { useForm } from "react-hook-form";
 import { Briefcase, Clock, Banknote, Users, CheckCircle, FileText, AlertCircle } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { submitJobApplication } from "../services/dbService";
 
 interface ApplicationInputs {
   name: string;
@@ -18,15 +19,30 @@ interface ApplicationInputs {
 
 export default function JobsPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ApplicationInputs>();
 
-  const onSubmit = (data: ApplicationInputs) => {
-    console.log("Job Application Data Submitted:", data);
-    // Simulate successful form submit with animation
-    setIsSubmitted(true);
-    setTimeout(() => {
+  const onSubmit = async (data: ApplicationInputs) => {
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      await submitJobApplication({
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        skill: `Mobile Detailing Partner (Shift: ${data.availableTime}, City: ${data.city})`,
+        exp: `Experience: ${data.experience}, Education: ${data.education}, Age: ${data.age}`,
+        cover: data.notes || "None"
+      });
+      setIsSubmitted(true);
       reset();
-    }, 1000);
+    } catch (err: any) {
+      console.error("Failed to submit job application:", err);
+      setSubmitError(err.message || "Failed to submit application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -324,8 +340,14 @@ export default function JobsPage() {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full h-14 rounded-xl text-base font-semibold">
-                      Submit Application Form
+                    {submitError && (
+                      <p className="text-red-500 text-xs font-semibold flex items-center gap-1.5 bg-red-50 border border-red-100 p-3 rounded-xl">
+                        <AlertCircle size={14} className="shrink-0" /> {submitError}
+                      </p>
+                    )}
+
+                    <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-xl text-base font-semibold cursor-pointer">
+                      {isSubmitting ? "Submitting Application..." : "Submit Application Form"}
                     </Button>
                   </form>
                 </div>

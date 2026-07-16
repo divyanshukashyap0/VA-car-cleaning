@@ -91,6 +91,8 @@ export interface dbBooking extends BaseDoc {
   serviceName: string;
   assignedEmployee?: string;
   assignedEmployeeName?: string;
+  crewArrivingDate?: string;
+  crewArrivingTime?: string;
   bookingStatus: "Pending" | "Assigned" | "In Progress" | "Completed" | "Cancelled";
   scheduledDate: string;
   timeSlot: string;
@@ -99,6 +101,7 @@ export interface dbBooking extends BaseDoc {
   discount?: number;
   couponCode?: string;
   notes?: string;
+  address?: string;
   rating?: number;
   feedback?: string;
   invoiceRef?: string;
@@ -275,7 +278,7 @@ export const removeAddress = async (userId: string, addressId: string): Promise<
 
 // 3. Vehicles CRUD
 export const getVehicles = async (customerId: string): Promise<dbVehicle[]> => {
-  const snap = await db.collection("vehicles").get();
+  const snap = await db.collection("vehicles").where("customerId", "==", customerId).get();
   const list: dbVehicle[] = [];
   snap.forEach((doc: any) => {
     const data = doc.data() as dbVehicle;
@@ -334,7 +337,7 @@ export const createBooking = async (data: Omit<dbBooking, "id" | "bookingStatus"
 };
 
 export const getBookingsByCustomer = async (customerId: string): Promise<dbBooking[]> => {
-  const snap = await db.collection("bookings").get();
+  const snap = await db.collection("bookings").where("customerId", "==", customerId).get();
   const list: dbBooking[] = [];
   snap.forEach((doc: any) => {
     const data = doc.data() as dbBooking;
@@ -346,7 +349,7 @@ export const getBookingsByCustomer = async (customerId: string): Promise<dbBooki
 };
 
 export const getBookingsByEmployee = async (employeeId: string): Promise<dbBooking[]> => {
-  const snap = await db.collection("bookings").get();
+  const snap = await db.collection("bookings").where("assignedEmployee", "==", employeeId).get();
   const list: dbBooking[] = [];
   snap.forEach((doc: any) => {
     const data = doc.data() as dbBooking;
@@ -382,13 +385,21 @@ export const updateBookingStatus = async (bookingId: string, status: dbBooking["
   await logAuditAction(`Update booking status ${bookingId} to ${status}`, prev, updated);
 };
 
-export const assignEmployee = async (bookingId: string, employeeId: string, employeeName: string): Promise<void> => {
+export const assignEmployee = async (
+  bookingId: string, 
+  employeeId: string, 
+  employeeName: string,
+  crewArrivingDate?: string,
+  crewArrivingTime?: string
+): Promise<void> => {
   const ref = db.collection("bookings").doc(bookingId);
   const prevSnap = await ref.get();
   const prev = prevSnap.data();
   const updated = {
     assignedEmployee: employeeId,
     assignedEmployeeName: employeeName,
+    crewArrivingDate: crewArrivingDate || "",
+    crewArrivingTime: crewArrivingTime || "",
     bookingStatus: "Assigned" as const,
     updatedAt: new Date().toISOString(),
     updatedBy: auth.currentUser?.uid || "system"
@@ -453,7 +464,10 @@ export const getAllEmployees = async (): Promise<dbEmployee[]> => {
   const snap = await db.collection("employees").get();
   const list: dbEmployee[] = [];
   snap.forEach((doc: any) => {
-    list.push({ id: doc.id, ...doc.data() } as dbEmployee);
+    const data = doc.data() as dbEmployee;
+    if (!data.isDeleted) {
+      list.push({ id: doc.id, ...data });
+    }
   });
   return list;
 };
@@ -466,6 +480,71 @@ export const updateEmployeeProfile = async (empId: string, data: Partial<dbEmplo
   };
   await db.collection("employees").doc(empId).set(updated, { merge: true });
   await logAuditAction(`Update employee profile for ${empId}`, null, updated);
+};
+
+export const createOrUpdateEmployee = async (data: {
+  name: string;
+  email: string;
+  photo?: string;
+  phone: string;
+  address: string;
+  department?: string;
+  salary?: string;
+  bankDetails?: string;
+  KYCStatus?: "Pending" | "Verified" | "Rejected";
+  availability?: "online" | "offline";
+}): Promise<void> => {
+  let existingUid: string | null = null;
+  const usersSnap = await db.collection("users").get();
+  usersSnap.forEach((doc: any) => {
+    const uData = doc.data();
+    if (uData.email?.toLowerCase() === data.email.toLowerCase()) {
+      existingUid = doc.id;
+    }
+  });
+
+  const empId = existingUid || "emp-" + Math.random().toString(36).substring(2, 9);
+  const empData: dbEmployee = {
+    id: empId,
+    name: data.name,
+    email: data.email,
+    photo: data.photo || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
+    phone: data.phone,
+    address: data.address,
+    department: data.department || "Detailing Crew",
+    salary: data.salary || "₹18,000/month",
+    bankDetails: data.bankDetails || "N/A",
+    KYCStatus: data.KYCStatus || "Verified",
+    availability: data.availability || "online",
+    rating: 5.0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy: auth.currentUser?.uid || "admin",
+    updatedBy: auth.currentUser?.uid || "admin",
+    status: "active",
+    isDeleted: false
+  };
+
+  await db.collection("employees").doc(empId).set(empData);
+
+  if (existingUid) {
+    await db.collection("users").doc(existingUid).set({
+      role: "staff",
+      contactNumber: data.phone,
+      photoURL: empData.photo
+    }, { merge: true });
+    await logAuditAction(`Created staff profile and promoted existing user ${existingUid} to staff role.`);
+  } else {
+    await logAuditAction(`Created placeholder staff profile for email ${data.email}. Will link on register.`);
+  }
+};
+
+export const deleteEmployeeProfile = async (empId: string): Promise<void> => {
+  await db.collection("employees").doc(empId).set({ isDeleted: true }, { merge: true });
+  if (!empId.startsWith("emp-")) {
+    await db.collection("users").doc(empId).set({ role: "customer" }, { merge: true });
+  }
+  await logAuditAction(`Deleted staff profile for ${empId}`);
 };
 
 // 7. Job Applications CRUD

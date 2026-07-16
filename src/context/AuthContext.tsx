@@ -87,17 +87,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(data as unknown as UserProfile);
       } else {
         // Initialize empty profile
+        // Check if there is a pre-created employee profile with the same email
+        let staffProfile: any = null;
+        let staffDocId: string | null = null;
+        const targetEmail = email || auth.currentUser?.email || "";
+
+        try {
+          const empSnap = await db.collection("employees").get();
+          empSnap.forEach((doc: any) => {
+            const eData = doc.data();
+            if (eData.email?.toLowerCase() === targetEmail.toLowerCase() && !eData.isDeleted) {
+              staffProfile = eData;
+              staffDocId = doc.id;
+            }
+          });
+        } catch (eErr) {
+          console.error("Error searching for existing staff profile:", eErr);
+        }
+
         const initial: any = {
-          name: displayName || auth.currentUser?.displayName || "Valued Customer",
-          email: email || auth.currentUser?.email || "",
-          contactNumber: "",
-          addresses: [],
+          name: displayName || staffProfile?.name || auth.currentUser?.displayName || "Valued Customer",
+          email: targetEmail,
+          contactNumber: staffProfile?.phone || "",
+          addresses: staffProfile?.address ? [staffProfile.address] : [],
           vehicles: [],
           appointments: [],
-          role: "customer"
+          role: staffProfile ? "staff" : "customer"
         };
         await db.collection("users").doc(uid).set(initial);
         setProfile(initial);
+
+        if (staffProfile && staffDocId) {
+          const updatedStaff = {
+            ...staffProfile,
+            id: uid,
+            updatedAt: new Date().toISOString(),
+            updatedBy: uid
+          };
+          await db.collection("employees").doc(uid).set(updatedStaff);
+          if (staffDocId !== uid) {
+            await db.collection("employees").doc(staffDocId).delete();
+          }
+          await logAuditAction(`Linked new registration ${uid} to pre-created staff profile.`);
+        }
       }
     } catch (err) {
       console.error("Critical error fetching user profile:", err);
@@ -225,8 +257,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     return authPromise
       .then(async (googleUser) => {
-        setUser(googleUser);
-        await fetchUserProfile(googleUser.uid, googleUser.displayName, googleUser.email);
+        if (googleUser) {
+          setUser(googleUser);
+          await fetchUserProfile(googleUser.uid, googleUser.displayName, googleUser.email);
+        }
       })
       .finally(() => {
         setLoading(false);

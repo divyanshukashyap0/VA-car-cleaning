@@ -71,6 +71,7 @@ export default function Account() {
   const [bookings, setBookings] = useState<dbBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingsFetched, setBookingsFetched] = useState(false);
+  const [viewingBookingDetails, setViewingBookingDetails] = useState<Partial<dbBooking> | null>(null);
 
   const fetchBookings = useCallback(async () => {
     if (!user) return;
@@ -140,9 +141,17 @@ export default function Account() {
   })) as Partial<dbBooking>[];
 
   // Merge: real bookings first, then any legacy profile appointments not already in bookings
+  // Filter out duplicate legacy appointments matching the same date, time slot, and service name
   const allBookings: Partial<dbBooking>[] = [
     ...bookings,
-    ...profileAppointments.filter(pa => !bookings.some(b => b.id === pa.id))
+    ...profileAppointments.filter(pa => 
+      !bookings.some(b => 
+        b.id === pa.id || 
+        (b.scheduledDate === pa.scheduledDate && 
+         b.timeSlot === pa.timeSlot && 
+         b.serviceName === pa.serviceName)
+      )
+    )
   ];
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -693,12 +702,33 @@ export default function Account() {
                         </div>
                       </div>
 
-                      <div className="pt-3 border-t border-gray-50 flex justify-between text-[11px] text-gray-500 font-semibold">
-                        <div className="flex items-center gap-1">
-                          <Clock size={12} className="text-[#F4B400]" />
-                          <span>{appt.scheduledDate}</span>
+                      <div className="pt-3 border-t border-gray-50 flex flex-col gap-2 text-[11px] text-gray-500 font-semibold">
+                        <div className="flex justify-between">
+                          <div className="flex items-center gap-1">
+                            <Clock size={12} className="text-[#F4B400]" />
+                            <span>Scheduled: {appt.scheduledDate}</span>
+                          </div>
+                          <span>Slot: {appt.timeSlot}</span>
                         </div>
-                        <span>{appt.timeSlot}</span>
+
+                        {appt.crewArrivingDate ? (
+                          <div className="bg-[#0f3b94]/5 border border-[#0f3b94]/10 rounded-xl p-2.5 space-y-1 mt-1 text-[#0f3b94]">
+                            <div className="text-[10px] font-black uppercase tracking-wider">Detailing Crew Dispatch Details</div>
+                            <div className="font-bold">Crew: <span className="font-extrabold">{appt.assignedEmployeeName}</span></div>
+                            <div className="font-bold">Estimated Arrival: <span className="font-black underline">{appt.crewArrivingDate} at {appt.crewArrivingTime}</span></div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-gray-400 text-[10px] font-bold uppercase tracking-wider mt-1 text-center">
+                            Crew Assignment: Pending
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => setViewingBookingDetails(appt)}
+                          className="w-full text-center py-2 bg-gray-50 hover:bg-primary hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors text-gray-500 cursor-pointer mt-1"
+                        >
+                          View Booking Details Sheet
+                        </button>
                       </div>
                     </div>
                   ))
@@ -758,6 +788,143 @@ export default function Account() {
         </div>
 
       </div>
+
+      {viewingBookingDetails && (
+        <div className="fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-6 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="font-heading font-extrabold text-dark text-xl">Booking Details Sheet</h3>
+              <button
+                onClick={() => setViewingBookingDetails(null)}
+                className="text-gray-400 hover:text-dark text-sm font-bold uppercase transition-colors font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-5 text-left text-xs">
+              {/* Header Status & Price */}
+              <div className="flex justify-between items-center bg-gray-50 border border-gray-100 p-4 rounded-2xl">
+                <div>
+                  <div className="text-[10px] text-gray-400 font-bold uppercase">Booking ID</div>
+                  <div className="font-mono font-bold text-dark text-xs">{viewingBookingDetails.id}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-gray-400 font-bold uppercase">Status</div>
+                  <span className={`inline-block text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded-full border ${
+                    viewingBookingDetails.bookingStatus === "Completed"
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                      : viewingBookingDetails.bookingStatus === "Pending"
+                      ? "bg-amber-50 text-amber-600 border-amber-100"
+                      : viewingBookingDetails.bookingStatus === "Cancelled"
+                      ? "bg-rose-50 text-rose-600 border-rose-100"
+                      : "bg-blue-50 text-blue-600 border-blue-100"
+                  }`}>
+                    {viewingBookingDetails.bookingStatus}
+                  </span>
+                </div>
+              </div>
+
+              {/* Service Details */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">1. Service & Vehicle</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-gray-400 block">Package Selected</span>
+                    <span className="font-extrabold text-dark text-sm">{viewingBookingDetails.serviceName}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block">Price / Fee</span>
+                    <span className="font-black text-dark text-sm">₹{viewingBookingDetails.price}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-400 block">Vehicle Specification</span>
+                    <span className="font-mono text-gray-700 font-bold">{viewingBookingDetails.vehicleDetails}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scheduled Date/Time */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">2. Scheduled Date & Time</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-gray-400 block">Scheduled Date</span>
+                    <span className="font-semibold text-gray-700">{viewingBookingDetails.scheduledDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block">Time Slot</span>
+                    <span className="font-semibold text-gray-700">{viewingBookingDetails.timeSlot}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Details */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">3. Customer Profile & Address</h4>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-gray-400 block">Full Name</span>
+                      <span className="font-extrabold text-dark">{viewingBookingDetails.customerName || profile?.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Contact Number</span>
+                      <span className="font-bold text-gray-700">{viewingBookingDetails.customerPhone || profile?.contactNumber}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block">Service Doorstep Address</span>
+                    <span className="font-semibold text-dark leading-relaxed block bg-amber-50/50 border border-amber-100/50 p-2.5 rounded-xl mt-1">
+                      {viewingBookingDetails.address || viewingBookingDetails.notes || "No address details specified"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailing Crew Assignment */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">4. Dispatch & Crew Assignment</h4>
+                {viewingBookingDetails.crewArrivingDate ? (
+                  <div className="bg-[#0f3b94]/5 border border-[#0f3b94]/10 rounded-2xl p-4 space-y-2 text-[#0f3b94]">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="opacity-80 block font-semibold">Assigned Detailer</span>
+                        <span className="font-black text-sm">{viewingBookingDetails.assignedEmployeeName}</span>
+                      </div>
+                      <div className="col-span-2 pt-1 border-t border-[#0f3b94]/10 flex justify-between">
+                        <div>
+                          <span className="opacity-80 block font-semibold">Expected Arrival Date</span>
+                          <span className="font-extrabold">{viewingBookingDetails.crewArrivingDate}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="opacity-80 block font-semibold">Arrival Time Slot</span>
+                          <span className="font-extrabold">{viewingBookingDetails.crewArrivingTime}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-center text-gray-400 font-semibold uppercase tracking-wider">
+                    Crew Assignment: Pending
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setViewingBookingDetails(null)}
+              className="w-full bg-dark hover:bg-dark/80 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md mt-6 cursor-pointer"
+            >
+              Acknowledge & Close
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
