@@ -387,42 +387,59 @@ export default function Admin() {
   };
 
   useEffect(() => {
-    if (activeTab === "logs") {
+    if (authLoading || !user || !profile) return;
+    const isAdminUser = profile.role === "admin" || profile.role === "super_admin";
+
+    if (activeTab === "logs" && isAdminUser) {
       fetchAuditLogs();
     }
-    if (activeTab === "appointments" || activeTab === "stats") {
+    if ((activeTab === "appointments" || activeTab === "stats") && isAdminUser) {
       fetchAdminBookings();
     }
-    if (activeTab === "jobs") {
+    if (activeTab === "jobs" && isAdminUser) {
       fetchAdminJobs();
     }
     if (activeTab === "reviews") {
       fetchAdminReviews();
     }
-    if (activeTab === "staff") {
+    if (activeTab === "staff" && isAdminUser) {
       fetchAdminEmployees();
     }
     if (activeTab === "services") {
       fetchServicesList();
     }
-  }, [activeTab]);
+  }, [activeTab, authLoading, user, profile]);
 
   // Initialize structures
   useEffect(() => {
+    if (authLoading || !user || !profile) return;
+    const isAdminUser = profile.role === "admin" || profile.role === "super_admin";
+    const isStaffUser = profile.role === "staff";
+
+    if (!isAdminUser && !isStaffUser) return;
+
     // 1. Appointments Setup
-    fetchAdminBookings();
+    if (isAdminUser) {
+      fetchAdminBookings();
+    }
 
     // 2. Users Directory Setup
-    fetchDirectoryUsers();
+    if (isAdminUser) {
+      fetchDirectoryUsers();
+    }
 
     // 3. Job Applications Setup
-    fetchAdminJobs();
+    if (isAdminUser) {
+      fetchAdminJobs();
+    }
 
     // 4. Reviews Setup
     fetchAdminReviews();
 
     // 5. Staff Directory Setup
-    fetchAdminEmployees();
+    if (isAdminUser) {
+      fetchAdminEmployees();
+    }
 
     // 6. Custom Services Setup
     fetchServicesList();

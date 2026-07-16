@@ -22,8 +22,17 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role || "customer")) {
-    return <Navigate to="/account" replace />;
+  if (allowedRoles) {
+    if (!profile) {
+      return (
+        <div className="pt-24 min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+    if (!allowedRoles.includes(profile.role as any)) {
+      return <Navigate to="/account" replace />;
+    }
   }
 
   return <>{children}</>;

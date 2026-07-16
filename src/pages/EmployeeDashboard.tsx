@@ -17,7 +17,8 @@ import {
   AlertCircle,
   LogOut,
   Sparkles,
-  Map
+  Map,
+  MessageSquare
 } from "lucide-react";
 import {
   getBookingsByEmployee,
@@ -96,6 +97,13 @@ export default function EmployeeDashboard() {
   const handleRequestLeave = async () => {
     setLeaveRequested(true);
     await logAuditAction(`Employee ${user.displayName} submitted a leave request`);
+  };
+
+  const getWhatsAppLink = (phone: string, customerName: string, serviceName: string, vehicleDetails: string) => {
+    const cleanPhone = phone.replace(/[^\d]/g, "");
+    const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const text = `Hello ${customerName}, this is ${user?.displayName || "your detailing specialist"} from VA Car Detailing. I am assigned to your doorstep service slot for ${vehicleDetails} (${serviceName}). I will be arriving shortly.`;
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`;
   };
 
   // Stats calculation
@@ -259,44 +267,64 @@ export default function EmployeeDashboard() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-2 justify-between items-center pt-2">
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[10px] text-primary font-bold hover:underline flex items-center gap-1 cursor-pointer bg-primary/5 py-1.5 px-3.5 rounded-xl border border-primary/10"
-                          >
-                            <Map size={13} />
-                            Get Directions
-                          </a>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center pt-3 border-t border-gray-100/60">
+                          <div className="flex flex-wrap gap-2">
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-primary font-bold hover:underline flex items-center gap-1 cursor-pointer bg-primary/5 py-1.5 px-3 rounded-xl border border-primary/10 transition-colors hover:bg-primary/10"
+                            >
+                              <Map size={13} />
+                              Directions
+                            </a>
+                            <a
+                              href={`tel:${job.customerPhone}`}
+                              className="text-[10px] text-emerald-600 font-bold hover:underline flex items-center gap-1 cursor-pointer bg-emerald-50 py-1.5 px-3 rounded-xl border border-emerald-100 transition-colors hover:bg-emerald-100/70"
+                            >
+                              <Phone size={13} />
+                              Call Customer
+                            </a>
+                            <a
+                              href={getWhatsAppLink(job.customerPhone, job.customerName, job.serviceName, job.vehicleDetails)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-green-600 font-bold hover:underline flex items-center gap-1 cursor-pointer bg-green-50 py-1.5 px-3 rounded-xl border border-green-100 transition-colors hover:bg-green-100/70"
+                            >
+                              <MessageSquare size={13} />
+                              WhatsApp Message
+                            </a>
+                          </div>
 
-                          {job.bookingStatus === "Assigned" && (
-                            <button
-                              onClick={() => handleUpdateJobStatus(job.id, "In Progress")}
-                              className="bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-4 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1 shadow-sm"
-                            >
-                              <Truck size={14} />
-                              Dispatch Crew
-                            </button>
-                          )}
-                          {job.bookingStatus === "In Progress" && (
-                            <button
-                              onClick={() => handleUpdateJobStatus(job.id, "Completed")}
-                              className="bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-4 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1 shadow-sm"
-                            >
-                              <CheckCircle size={14} />
-                              Complete Detox
-                            </button>
-                          )}
-                          {job.bookingStatus === "Pending" && (
-                            <span className="text-[10px] text-gray-400 italic">Awaiting Admin Confirmation</span>
-                          )}
-                          {(job.bookingStatus === "Completed" || job.bookingStatus === "Cancelled") && (
-                            <span className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1">
-                              <ShieldCheck size={14} className="text-emerald-500" />
-                              Detox Finalized
-                            </span>
-                          )}
+                          <div className="shrink-0">
+                            {job.bookingStatus === "Assigned" && (
+                              <button
+                                onClick={() => handleUpdateJobStatus(job.id, "In Progress")}
+                                className="bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-4 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1 shadow-sm transition-colors"
+                              >
+                                <Truck size={14} />
+                                Dispatch Crew
+                              </button>
+                            )}
+                            {job.bookingStatus === "In Progress" && (
+                              <button
+                                onClick={() => handleUpdateJobStatus(job.id, "Completed")}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 px-4 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1 shadow-sm transition-colors"
+                              >
+                                <CheckCircle size={14} />
+                                Complete Detox
+                              </button>
+                            )}
+                            {job.bookingStatus === "Pending" && (
+                              <span className="text-[10px] text-gray-400 italic">Awaiting Admin Confirmation</span>
+                            )}
+                            {(job.bookingStatus === "Completed" || job.bookingStatus === "Cancelled") && (
+                              <span className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1">
+                                <ShieldCheck size={14} className="text-emerald-500" />
+                                Detox Finalized
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
