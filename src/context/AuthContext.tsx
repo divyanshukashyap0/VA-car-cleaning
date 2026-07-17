@@ -167,21 +167,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: "rahul@gmail.com",
           password: "password123",
           displayName: "Rahul Sharma",
-          photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+          photoURL: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul"
         },
         {
           uid: "usr-2",
           email: "arjun.m@yahoo.com",
           password: "password123",
           displayName: "Arjun Mehta",
-          photoURL: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&q=80&w=150"
+          photoURL: "https://api.dicebear.com/7.x/avataaars/svg?seed=Arjun"
         },
         {
           uid: "usr-3",
           email: "pooja.malhotra@outlook.com",
           password: "password123",
           displayName: "Pooja Malhotra",
-          photoURL: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150"
+          photoURL: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pooja"
         }
       ];
       localStorage.setItem("sim_registered_users", JSON.stringify(seededSimUsers));

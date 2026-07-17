@@ -44,9 +44,9 @@ export default function DashboardCleaning() {
           {/* LEFT: Copy & Steps */}
           <div className="lg:col-span-7 space-y-8">
             <div className="space-y-4">
-              <span className="text-primary font-bold text-xs uppercase tracking-widest block">— CONSOLE RESTORATION —</span>
-              <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dark tracking-tight">Dashboard Cleaning</h1>
-              <p className="text-gray-600 text-base leading-relaxed">
+              <span className="text-primary font-bold text-[11px] uppercase tracking-widest block">— CONSOLE RESTORATION —</span>
+              <h1 className="text-3xl md:text-4xl font-heading font-extrabold text-dark tracking-tight leading-[1.1]">Dashboard Cleaning</h1>
+              <p className="text-gray-600 text-sm leading-relaxed max-w-xl">
                 Restore the deep rich color of your vinyl dashboard. We clear air vents with micro-dusting brushes, clean steering consoles, and apply premium matte UV blocks to prevent future solar cracking.
               </p>
               <div className="inline-flex items-center gap-3 bg-primary/5 py-2 px-4 rounded-xl border border-primary/10">

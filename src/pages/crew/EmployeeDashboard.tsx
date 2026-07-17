@@ -29,7 +29,7 @@ import {
   dbBooking
 } from "../../services/dbService";
 
-export default function EmployeeDashboard() {
+export default function EmployeeDashboard({ embedded = false }: { embedded?: boolean }) {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<"available" | "my_jobs">("available");
   
@@ -136,41 +136,42 @@ export default function EmployeeDashboard() {
   const activeMyJobs = myJobs.filter((j) => j.bookingStatus !== "Completed" && j.bookingStatus !== "Cancelled");
   const completedMyJobs = myJobs.filter((j) => j.bookingStatus === "Completed");
 
-  return (
-    <div className="pt-24 min-h-screen bg-[#F8FAFC] pb-24">
-      <div className="container mx-auto px-4 md:px-6 max-w-6xl space-y-8">
-        
-        {/* Top Header Card */}
-        <div className="bg-gradient-to-r from-dark via-[#0b2861] to-primary rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider py-1 px-3 rounded-full">
-              <ShieldCheck size={14} />
-              Verified Detailing Crew Dashboard
-            </div>
-            <h1 className="text-2xl md:text-3xl font-heading font-extrabold tracking-tight">
-              Welcome back, {profile?.name || user?.displayName || "Crew Member"}
-            </h1>
-            <p className="text-xs text-gray-300">
-              Claim available customer bookings in real-time. Accepted jobs belong exclusively to you.
-            </p>
+  const content = (
+    <div className={embedded ? "space-y-6 text-left" : "container mx-auto px-4 md:px-6 max-w-6xl space-y-8"}>
+      {/* Top Header Card */}
+      <div className="bg-gradient-to-r from-dark via-[#0b2861] to-primary rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider py-1 px-3 rounded-full">
+            <ShieldCheck size={14} />
+            Verified Detailing Crew Control Panel
           </div>
+          <h1 className="text-2xl md:text-3xl font-heading font-extrabold tracking-tight">
+            Welcome back, {profile?.name || user?.displayName || "Crew Member"}
+          </h1>
+          <p className="text-xs text-gray-300">
+            Claim available customer bookings in real-time. Accepted jobs belong exclusively to you.
+          </p>
+        </div>
 
-          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/10">
-            <button
-              onClick={loadDashboardData}
-              className="p-2 text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-              title="Refresh Dashboard"
-            >
-              <RefreshCw size={18} className={loading ? "animate-spin text-accent" : ""} />
-            </button>
+        <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/10">
+          <button
+            onClick={loadDashboardData}
+            className="p-2 text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold px-3"
+            title="Refresh Dashboard"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin text-accent" : ""} />
+            <span>Refresh</span>
+          </button>
+          {!embedded && (
             <Link
               to="/account"
               className="bg-white text-dark hover:bg-gray-100 font-bold text-xs py-2 px-4 rounded-xl transition-all"
             >
               My Account Profile
             </Link>
-          </div>
+          )}
         </div>
+      </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -488,8 +489,13 @@ export default function EmployeeDashboard() {
             </div>
           </div>
         )}
+    </div>
+  );
 
-      </div>
+  if (embedded) return content;
+  return (
+    <div className="pt-24 min-h-screen bg-[#F8FAFC] pb-24">
+      {content}
     </div>
   );
 }

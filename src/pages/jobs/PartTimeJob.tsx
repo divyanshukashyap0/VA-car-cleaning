@@ -34,9 +34,9 @@ export default function PartTimeJob() {
           {/* LEFT: Copy & Details */}
           <div className="lg:col-span-7 space-y-8">
             <div className="space-y-4">
-              <span className="text-primary font-bold text-xs uppercase tracking-widest block">— EARN EXTRA INCOME —</span>
-              <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dark tracking-tight">Part-Time Job</h1>
-              <p className="text-gray-600 text-base leading-relaxed">
+              <span className="text-primary font-bold text-[11px] uppercase tracking-widest block">— EARN EXTRA INCOME —</span>
+              <h1 className="text-3xl md:text-4xl font-heading font-extrabold text-dark tracking-tight leading-[1.1]">Part-Time Job</h1>
+              <p className="text-gray-600 text-sm leading-relaxed max-w-xl">
                 Looking for a flexible way to support your studies or earn extra monthly income? Join the VA doorstep wash network as a detailing partner. Work only 5-6 hours a day around your existing schedule.
               </p>
             </div>

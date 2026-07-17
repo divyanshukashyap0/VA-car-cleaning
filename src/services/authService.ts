@@ -1,6 +1,7 @@
 import { auth, googleProvider, isFirebaseConfigured } from "../lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, sendPasswordResetEmail, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { logAuditAction } from "./dbService";
+import { getCartoonAvatar } from "../utils/avatar";
 
 // Helper to log user login history and device specs
 const logLoginSession = async (user: any) => {
@@ -33,7 +34,7 @@ export const loginWithEmailAndPassword = async (email: string, pass: string): Pr
       uid: found.uid,
       email: found.email,
       displayName: found.displayName,
-      photoURL: found.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+      photoURL: found.photoURL || getCartoonAvatar(found.email || found.displayName || found.uid)
     };
     localStorage.setItem("sim_auth_user", JSON.stringify(loggedUser));
     auth.currentUser = loggedUser;
@@ -59,7 +60,7 @@ export const registerWithEmailAndPassword = async (email: string, pass: string, 
       email: email,
       password: pass,
       displayName: name,
-      photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+      photoURL: getCartoonAvatar(email || name)
     };
     simUsers.push(newUser);
     localStorage.setItem("sim_registered_users", JSON.stringify(simUsers));
@@ -85,7 +86,7 @@ export const loginWithGoogleOAuth = async (): Promise<any> => {
       uid: "google-mock-user-777",
       email: "doorstep.detailer@gmail.com",
       displayName: "Google Detailing Fan",
-      photoURL: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150"
+      photoURL: getCartoonAvatar("Google Detailing Fan")
     };
     localStorage.setItem("sim_auth_user", JSON.stringify(googleUser));
     auth.currentUser = googleUser;
@@ -114,7 +115,7 @@ export const verifyPhoneOTP = async (txId: string, otpCode: string, phone: strin
       email: `${phone.replace(/\+/g, "")}@phone.vacleaning.com`,
       phone: phone,
       displayName: "Phone Customer " + phone.substring(phone.length - 4),
-      photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+      photoURL: getCartoonAvatar(phone)
     };
     simUsers.push(found);
     localStorage.setItem("sim_registered_users", JSON.stringify(simUsers));

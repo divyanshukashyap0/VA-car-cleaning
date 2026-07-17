@@ -170,8 +170,12 @@ export interface dbReview extends BaseDoc {
   stars: number;
   review: string;
   images?: string[];
+  videos?: string[];
+  serviceName?: string;
+  serviceDate?: string;
   adminReply?: string;
 }
+
 
 export interface dbNotification extends BaseDoc {
   id: string;
@@ -705,7 +709,7 @@ export const createOrUpdateEmployee = async (data: {
     id: empId,
     name: data.name,
     email: data.email,
-    photo: data.photo || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
+    photo: data.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.name || data.email || "crew")}`,
     phone: data.phone,
     address: data.address,
     department: data.department || "Detailing Crew",
@@ -825,15 +829,39 @@ export const replyToReview = async (reviewId: string, reply: string): Promise<vo
 
 // 9. Notifications CRUD
 export const getUserNotifications = async (userId: string): Promise<dbNotification[]> => {
-  const snap = await db.collection("notifications").where("user", "==", userId).get();
-  const list: dbNotification[] = [];
-  snap.forEach((doc: any) => {
-    const data = doc.data() as dbNotification;
-    if (!data.isDeleted) {
-      list.push({ id: doc.id, ...data });
+  const notifMap = new Map<string, dbNotification>();
+
+  try {
+    const snap = await db.collection("notifications").get();
+    snap.forEach((doc: any) => {
+      const data = doc.data() as dbNotification;
+      const docId = doc.id;
+      if (!data.isDeleted) {
+        if (data.user === userId || (data as any).userId === userId || data.user === "all_users" || data.user === "system") {
+          notifMap.set(docId, { id: docId, ...data });
+        }
+      }
+    });
+  } catch (err) {
+    console.warn("Firestore notifications fetch fallback to local storage:", err);
+  }
+
+  // Also include any local notifications sent to this user
+  try {
+    const localRaw = localStorage.getItem(`sim_user_notifications_${userId}`);
+    if (localRaw) {
+      const localList: dbNotification[] = JSON.parse(localRaw);
+      localList.forEach((n) => {
+        if (!n.isDeleted && !notifMap.has(n.id)) {
+          notifMap.set(n.id, n);
+        }
+      });
     }
-  });
-  return list;
+  } catch (e) {
+    // fallback
+  }
+
+  return Array.from(notifMap.values());
 };
 
 export const sendNotification = async (
@@ -844,25 +872,42 @@ export const sendNotification = async (
   priority: dbNotification["priority"] = "low",
   extraData?: Partial<dbNotification>
 ): Promise<string> => {
-  const docData = {
-    user: userId,
-    title,
-    description: desc,
+  const safeUserId = userId || "system";
+  const rawData: Record<string, any> = {
+    user: safeUserId,
+    userId: safeUserId,
+    title: title || "Notification",
+    description: desc || "",
     read: false,
     pinned: false,
     archived: false,
-    type,
-    priority,
+    type: type || "System",
+    priority: priority || "low",
     status: "Sent" as const,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isDeleted: false,
     ...extraData
   };
+
+  // Strip out any undefined properties so Firestore never receives invalid data
+  const docData: Record<string, any> = {};
+  Object.keys(rawData).forEach((k) => {
+    if (rawData[k] !== undefined) {
+      docData[k] = rawData[k];
+    }
+  });
+
   const res = await db.collection("notifications").add(docData);
   
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("sim_notification_created", { detail: { userId } }));
+    try {
+      const { dispatchMultiDeviceNotification } = await import("./notificationService");
+      dispatchMultiDeviceNotification(title, desc, extraData?.imageUrl, extraData?.deepLink, safeUserId);
+    } catch (e) {
+      // dynamic import fallback
+    }
+    window.dispatchEvent(new CustomEvent("sim_notification_created", { detail: { userId: safeUserId } }));
   }
 
   return res.id;
@@ -1021,6 +1066,105 @@ export const updateBeforeAfterSettings = async (settings: dbBeforeAfterSettings)
   await db.collection("settings").doc("before_after").set(settings);
   await logAuditAction("Update Before & After settings", null, settings);
 };
+
+// 13b. About Us Page Settings
+export interface dbAboutSettings {
+  badge: string;
+  title: string;
+  subtitle: string;
+  storyHeading: string;
+  storyText1: string;
+  storyText2: string;
+  storyImageUrl: string;
+  stat1Number: string;
+  stat1Label: string;
+  stat2Number: string;
+  stat2Label: string;
+  stat3Number: string;
+  stat3Label: string;
+  stat4Number: string;
+  stat4Label: string;
+}
+
+export const DEFAULT_ABOUT_SETTINGS: dbAboutSettings = {
+  badge: "Who We Are",
+  title: "Crafting the Showroom Shine",
+  subtitle: "VA Car Cleaning Service stands for professional care, absolute premium precision, and uncompromising quality delivered to your door.",
+  storyHeading: "Redefining Mobile Detailing Across Districts",
+  storyText1: "Founded with a mission to bring professional car detailing directly to vehicle owners' driveways, VA Car Cleaning Service replaces the inconvenience of waiting at traditional car wash stations.",
+  storyText2: "Our trained technicians use 100% water-saving foam formulas, high-powered mobile vacuum systems, and non-scratch microfiber cloths to protect clear coats.",
+  storyImageUrl: "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=1200",
+  stat1Number: "1000+",
+  stat1Label: "Cars Cleaned",
+  stat2Number: "100%",
+  stat2Label: "Water Saved",
+  stat3Number: "4.9★",
+  stat3Label: "Customer Rating",
+  stat4Number: "50+",
+  stat4Label: "Mobile Detailers"
+};
+
+export const getAboutSettings = async (): Promise<dbAboutSettings> => {
+  try {
+    const doc = await db.collection("settings").doc("about_page").get();
+    if (doc.exists()) {
+      return { ...DEFAULT_ABOUT_SETTINGS, ...(doc.data() as dbAboutSettings) };
+    }
+  } catch (err) {
+    console.error("Error fetching about_page settings:", err);
+  }
+  return DEFAULT_ABOUT_SETTINGS;
+};
+
+export const updateAboutSettings = async (settings: dbAboutSettings): Promise<void> => {
+  await db.collection("settings").doc("about_page").set(settings);
+  await logAuditAction("Update About Us page content settings", null, settings);
+};
+
+// 13c. Contact Us Page Settings
+export interface dbContactSettings {
+  badge: string;
+  title: string;
+  subtitle: string;
+  phone1: string;
+  phone2: string;
+  email: string;
+  address: string;
+  cityTagline: string;
+  whatsappNumber: string;
+  whatsappMessage: string;
+}
+
+export const DEFAULT_CONTACT_SETTINGS: dbContactSettings = {
+  badge: "100% Home & Doorstep Service",
+  title: "No Shop Footprint, We Come to Your Driveway",
+  subtitle: "Save time and fuel. We bring the complete detailing wash setup directly to your doorstep. Proudly cleaning Cars and Bikes across active districts.",
+  phone1: "+91 95699 49626",
+  phone2: "+91 92501 64163",
+  email: "info@vacleaning.com",
+  address: "Everywhere in Kanpur nagar",
+  cityTagline: "Coming to your City Soon",
+  whatsappNumber: "918882540255",
+  whatsappMessage: "Need a quick quote? Chat on WhatsApp!"
+};
+
+export const getContactSettings = async (): Promise<dbContactSettings> => {
+  try {
+    const doc = await db.collection("settings").doc("contact_page").get();
+    if (doc.exists()) {
+      return { ...DEFAULT_CONTACT_SETTINGS, ...(doc.data() as dbContactSettings) };
+    }
+  } catch (err) {
+    console.error("Error fetching contact_page settings:", err);
+  }
+  return DEFAULT_CONTACT_SETTINGS;
+};
+
+export const updateContactSettings = async (settings: dbContactSettings): Promise<void> => {
+  await db.collection("settings").doc("contact_page").set(settings);
+  await logAuditAction("Update Contact Us page content settings", null, settings);
+};
+
 
 // 14. Dynamic Custom Services
 export const defaultServices: dbService[] = [
@@ -1221,3 +1365,179 @@ export const deleteServiceProfile = async (id: string): Promise<void> => {
     console.error("Local storage delete backup failed:", e);
   }
 };
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DYNAMIC PRICING PLANS & PACKAGES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+export interface dbPricingPlan extends BaseDoc {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  subscriptionDiscountPercent?: number;
+  icon?: string;
+  features: string[];
+  popular: boolean;
+  cta: string;
+}
+
+export const DEFAULT_PRICING_PLANS: dbPricingPlan[] = [
+  {
+    id: "starter",
+    name: "Starter Package",
+    description: "Great for quick, regular cleanups to maintain standard cleanliness.",
+    price: "₹499",
+    subscriptionDiscountPercent: 15,
+    icon: "zap",
+    features: [
+      "Eco foam exterior wash",
+      "Wheel cleaning & shine",
+      "Door frame wipe down",
+      "Towel dried finish",
+      "Standard dashboard dusting"
+    ],
+    popular: false,
+    cta: "Book Starter"
+  },
+  {
+    id: "standard",
+    name: "Standard Package",
+    description: "Highly requested for regular maintenance and light interior detailing.",
+    price: "₹799",
+    subscriptionDiscountPercent: 15,
+    icon: "star",
+    features: [
+      "All Starter features",
+      "Deep cabin vacuuming",
+      "All footmats washed",
+      "Dashboard polish & UV guard",
+      "Interior glass clean & polish",
+      "Odor neutralizing spray"
+    ],
+    popular: true,
+    cta: "Book Standard"
+  },
+  {
+    id: "premium",
+    name: "Premium Detailing",
+    description: "Our signature package to restore your vehicle to immaculate condition.",
+    price: "₹1999",
+    subscriptionDiscountPercent: 15,
+    icon: "shield",
+    features: [
+      "All Standard features",
+      "Engine bay cleaning",
+      "Seat stain spot extraction",
+      "AC vent steam sterilization",
+      "Liquid polymer paint wax coat",
+      "Premium tire dressing"
+    ],
+    popular: false,
+    cta: "Book Premium"
+  },
+  {
+    id: "gold",
+    name: "Gold Ultimate",
+    description: "Elite service including professional gloss enhancement and total protection.",
+    price: "₹4999",
+    subscriptionDiscountPercent: 15,
+    icon: "trophy",
+    features: [
+      "All Premium features",
+      "9H Nano-ceramic coating layer",
+      "Leather condition treatment",
+      "Windshield hydrophobe treatment",
+      "Alloy wheel restoration polish",
+      "2-Year protection guarantee"
+    ],
+    popular: false,
+    cta: "Book Gold Ultimate"
+  }
+];
+
+export const getAllPricingPlans = async (): Promise<dbPricingPlan[]> => {
+  const plansMap = new Map<string, dbPricingPlan>();
+  DEFAULT_PRICING_PLANS.forEach((p) => plansMap.set(p.id, { ...p }));
+
+  try {
+    const snap = await db.collection("pricing_plans").get();
+    if (snap && snap.docs) {
+      snap.docs.forEach((doc: any) => {
+        const data = typeof doc.data === "function" ? doc.data() : doc;
+        if (data && data.id) {
+          if (data.isDeleted) {
+            plansMap.delete(data.id);
+          } else {
+            const existing = plansMap.get(data.id) || {} as dbPricingPlan;
+            plansMap.set(data.id, { ...existing, ...data });
+          }
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Firestore pricing plans fetch failed, fallback to local storage:", e);
+  }
+
+  // Backup/Override from local storage simulator
+  try {
+    const localPlansRaw = JSON.parse(localStorage.getItem("admin_pricing_plans") || "[]");
+    localPlansRaw.forEach((lp: any) => {
+      if (lp.isDeleted) {
+        plansMap.delete(lp.id);
+      } else {
+        const existing = plansMap.get(lp.id) || {} as dbPricingPlan;
+        plansMap.set(lp.id, { ...existing, ...lp });
+      }
+    });
+  } catch (e) {
+    console.error("Local storage pricing plans read failed:", e);
+  }
+
+  return Array.from(plansMap.values());
+};
+
+export const createOrUpdatePricingPlan = async (plan: dbPricingPlan): Promise<void> => {
+  const docData = {
+    ...plan,
+    isDeleted: false,
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    await db.collection("pricing_plans").doc(plan.id).set(docData, { merge: true });
+  } catch (err) {
+    console.warn("Could not save pricing plan to Firestore, saving locally:", err);
+  }
+
+  try {
+    const localPlansRaw = JSON.parse(localStorage.getItem("admin_pricing_plans") || "[]");
+    const filtered = localPlansRaw.filter((p: any) => p.id !== plan.id);
+    filtered.push(docData);
+    localStorage.setItem("admin_pricing_plans", JSON.stringify(filtered));
+  } catch (e) {
+    console.error("Local storage pricing plan save failed:", e);
+  }
+};
+
+export const deletePricingPlan = async (id: string): Promise<void> => {
+  try {
+    await db.collection("pricing_plans").doc(id).set({ isDeleted: true }, { merge: true });
+  } catch (err) {
+    console.warn("Could not soft delete pricing plan in Firestore:", err);
+  }
+
+  try {
+    const localPlansRaw = JSON.parse(localStorage.getItem("admin_pricing_plans") || "[]");
+    const matched = localPlansRaw.find((p: any) => p.id === id);
+    if (matched) {
+      matched.isDeleted = true;
+    } else {
+      localPlansRaw.push({ id, isDeleted: true });
+    }
+    localStorage.setItem("admin_pricing_plans", JSON.stringify(localPlansRaw));
+  } catch (e) {
+    console.error("Local storage pricing plan delete failed:", e);
+  }
+};
+

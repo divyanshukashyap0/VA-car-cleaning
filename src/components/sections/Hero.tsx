@@ -13,7 +13,7 @@ export default function Hero() {
   ];
 
   return (
-    <section className="relative min-h-screen flex items-center pt-24 pb-12 overflow-hidden bg-[#070C16]">
+    <section className="relative pt-24 pb-10 md:pt-28 md:pb-12 overflow-hidden bg-[#070C16]">
       {/* Background Image & Overlay */}
       <div className="absolute inset-0 z-0">
         <img
@@ -26,42 +26,42 @@ export default function Hero() {
       </div>
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="grid grid-cols-1 gap-12 items-center">
+        <div className="grid grid-cols-1 gap-8 items-center">
           
           {/* Heading, Copy, Buttons */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-4"
+              transition={{ duration: 0.5 }}
+              className="space-y-3"
             >
-              <span className="text-[#F4B400] font-heading font-semibold tracking-widest text-xs uppercase block">
+              <span className="text-[#F4B400] font-heading font-semibold tracking-widest text-[11px] uppercase block">
                 — PREMIUM CAR CARE —
               </span>
-              <h1 className="text-4xl md:text-6xl font-heading font-extrabold text-white leading-tight tracking-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-[3.25rem] font-heading font-extrabold text-white leading-[1.1] tracking-tight max-w-2xl">
                 Professional Car Cleaning<br />
-                <span className="text-[#F4B400]">At Your Doorstep</span>
+                <span className="text-[#F4B400] font-extrabold">At Your Doorstep</span>
               </h1>
-              <p className="text-base md:text-lg text-gray-300 max-w-xl leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-300 max-w-lg leading-relaxed font-normal">
                 We bring the shine back to your car with premium cleaning & detailing services. 100% water conservation doorstep service.
               </p>
             </motion.div>
 
             {/* CTA Buttons */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="flex flex-wrap items-center gap-4"
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="flex flex-wrap items-center gap-3.5"
             >
               <Link to="/book">
-                <Button className="bg-[#F4B400] hover:bg-[#ffe258] text-dark font-bold px-8 py-3.5 h-auto text-sm uppercase tracking-wider rounded-xl border-none shadow-lg shadow-[#F4B400]/25">
+                <Button className="bg-[#F4B400] hover:bg-[#ffe258] text-dark font-bold px-7 py-3 h-auto text-xs uppercase tracking-wider rounded-xl border-none shadow-lg shadow-[#F4B400]/20 cursor-pointer">
                   Book Service <span className="ml-1">→</span>
                 </Button>
               </Link>
               <Link to="/jobs">
-                <Button variant="outline" className="text-white border-white/20 hover:bg-white/10 hover:border-white/40 font-bold px-8 py-3.5 h-auto text-sm uppercase tracking-wider rounded-xl">
+                <Button variant="outline" className="text-white border-white/20 hover:bg-white/10 hover:border-white/40 font-bold px-7 py-3 h-auto text-xs uppercase tracking-wider rounded-xl cursor-pointer">
                   Apply For Job
                 </Button>
               </Link>
@@ -69,28 +69,28 @@ export default function Hero() {
 
             {/* Stats row inside capsule container */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-white/5 border border-white/10 rounded-2xl md:rounded-[24px] p-6 max-w-3xl grid grid-cols-2 md:grid-cols-4 gap-6 backdrop-blur-md"
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-5 max-w-2xl grid grid-cols-2 md:grid-cols-4 gap-4 backdrop-blur-md"
             >
               {stats.map((stat, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
+                <div key={i} className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
                     {stat.icon}
                   </div>
                   <div>
-                    <h4 className="text-lg md:text-xl font-heading font-black text-white leading-none mb-1">
+                    <h4 className="text-base md:text-lg font-heading font-black text-white leading-none mb-0.5">
                       {stat.count}
                     </h4>
-                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                    <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
                       {stat.label}
                     </p>
                   </div>
                 </div>
               ))}
             </motion.div>
-        </div>
+          </div>
         </div>
       </div>
     </section>

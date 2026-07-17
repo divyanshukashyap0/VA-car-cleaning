@@ -20,9 +20,22 @@ import {
   getAllServices,
   createOrUpdateService,
   deleteServiceProfile,
-  dbService
+  dbService,
+  getAllPricingPlans,
+  createOrUpdatePricingPlan,
+  deletePricingPlan,
+  dbPricingPlan,
+  getAboutSettings,
+  updateAboutSettings,
+  dbAboutSettings,
+  DEFAULT_ABOUT_SETTINGS,
+  getContactSettings,
+  updateContactSettings,
+  dbContactSettings,
+  DEFAULT_CONTACT_SETTINGS
 } from "../services/dbService";
 import NotificationCenterTab from "../components/admin/NotificationCenterTab";
+import { getCartoonAvatar, handleAvatarError } from "../utils/avatar";
 import {
   ShieldAlert,
   Users,
@@ -43,7 +56,8 @@ import {
   Clipboard,
   Bell,
   Plus,
-  UserCheck
+  UserCheck,
+  Phone
 } from "lucide-react";
 import { servicePrices } from "../lib/prices";
 
@@ -92,11 +106,15 @@ interface AdminReview {
   rating: number;
   message: string;
   date: string;
+  images?: string[];
+  videos?: string[];
+  serviceName?: string;
+  adminReply?: string;
 }
 
 export default function Admin() {
   const { user, profile, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<"stats" | "appointments" | "users" | "jobs" | "services" | "reviews" | "logs" | "notifications" | "staff">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "appointments" | "users" | "jobs" | "services" | "pricing" | "reviews" | "logs" | "notifications" | "staff">("stats");
 
   // Load state variables
   const [appointments, setAppointments] = useState<AdminAppointment[]>([]);
@@ -150,6 +168,59 @@ export default function Admin() {
   const [serviceImageInputs, setServiceImageInputs] = useState<Record<string, string>>({});
   const [serviceDescInputs, setServiceDescInputs] = useState<Record<string, string>>({});
   const [showConfigAlert, setShowConfigAlert] = useState(false);
+
+  // Dynamic Pricing Plans & Subscriptions state
+  const [pricingPlans, setPricingPlans] = useState<dbPricingPlan[]>([]);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<dbPricingPlan | null>(null);
+
+  const [planId, setPlanId] = useState("");
+  const [planName, setPlanName] = useState("");
+  const [planDescription, setPlanDescription] = useState("");
+  const [planPrice, setPlanPrice] = useState("");
+  const [planDiscount, setPlanDiscount] = useState(15);
+  const [planIcon, setPlanIcon] = useState("zap");
+  const [planFeaturesText, setPlanFeaturesText] = useState("");
+  const [planPopular, setPlanPopular] = useState(false);
+  const [planCta, setPlanCta] = useState("Book Now");
+
+  // Single unified management sub-tab for Services, Pricing, About & Contact
+  const [serviceSubTab, setServiceSubTab] = useState<"catalog" | "pricing" | "about" | "contact">("catalog");
+
+  // About Us Page State
+  const [aboutInputs, setAboutInputs] = useState<dbAboutSettings>(DEFAULT_ABOUT_SETTINGS);
+  const [aboutSavedAlert, setAboutSavedAlert] = useState(false);
+
+  // Contact Us Page State
+  const [contactInputs, setContactInputs] = useState<dbContactSettings>(DEFAULT_CONTACT_SETTINGS);
+  const [contactSavedAlert, setContactSavedAlert] = useState(false);
+
+  const fetchAboutSettings = async () => {
+    const data = await getAboutSettings();
+    setAboutInputs(data);
+  };
+
+  const handleSaveAboutSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await updateAboutSettings(aboutInputs);
+    setAboutSavedAlert(true);
+    setTimeout(() => setAboutSavedAlert(false), 3000);
+  };
+
+  const fetchContactSettings = async () => {
+    const data = await getContactSettings();
+    setContactInputs(data);
+  };
+
+  const handleSaveContactSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await updateContactSettings(contactInputs);
+    setContactSavedAlert(true);
+    setTimeout(() => setContactSavedAlert(false), 3000);
+  };
+
+
 
   const fetchDirectoryUsers = async () => {
     try {
@@ -244,7 +315,7 @@ export default function Admin() {
             id: uid,
             name: userData?.name || userData?.displayName || simUserDisplayName || profileData?.name || "New Detailer Crew",
             email: userData?.email || simUserEmail || profileData?.email || "",
-            photo: userData?.photoURL || profileData?.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
+            photo: userData?.photoURL || profileData?.photoURL || getCartoonAvatar(userData?.email || simUserEmail || "detailer"),
             phone: userData?.contactNumber || userData?.phone || profileData?.contactNumber || "+91 88888 88888",
             address: userData?.address || (profileData?.addresses && profileData.addresses[0]) || "N/A",
             department: empData?.department || "Detailing Crew",
@@ -336,11 +407,15 @@ export default function Admin() {
       const data = await getAllReviews();
       const mapped = data.map((r) => ({
         id: r.id,
-        name: r.customerName,
+        name: r.customerName || "Customer",
         email: `Customer: ${r.customerId}`,
         rating: r.stars,
         message: r.review,
-        date: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : new Date().toLocaleDateString()
+        date: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+        images: r.images,
+        videos: r.videos,
+        serviceName: r.serviceName,
+        adminReply: r.adminReply
       }));
       setReviews(mapped);
     } catch (err) {
@@ -410,7 +485,7 @@ export default function Admin() {
           availability: existingEmp?.availability || "online",
           KYCStatus: existingEmp?.KYCStatus || "Verified",
           rating: existingEmp?.rating || 5.0,
-          photo: existingEmp?.photo || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
+          photo: existingEmp?.photo || getCartoonAvatar(su.email || su.displayName),
           isLinkedToAuth: true,
         };
         mergedMap.set(su.uid, merged);
@@ -451,7 +526,7 @@ export default function Admin() {
         await updateEmployeeProfile(editingStaff.id, {
           name: staffName,
           email: staffEmail,
-          photo: staffPhoto || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
+          photo: staffPhoto || getCartoonAvatar(staffName || staffEmail),
           phone: staffPhone,
           address: staffAddress,
           department: staffDept,
@@ -465,7 +540,7 @@ export default function Admin() {
           await db.collection("users").doc(editingStaff.id).set({
             name: staffName,
             contactNumber: staffPhone,
-            photoURL: staffPhoto || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"
+            photoURL: staffPhoto || getCartoonAvatar(staffName || staffEmail)
           }, { merge: true });
         }
       } else {
@@ -519,6 +594,105 @@ export default function Admin() {
     }
   };
 
+  const fetchPricingPlans = async () => {
+    setPricingLoading(true);
+    try {
+      const data = await getAllPricingPlans();
+      setPricingPlans(data);
+    } catch (err) {
+      console.error("Error loading pricing plans:", err);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const handlePlanSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!planName || !planPrice || !planDescription) {
+      alert("Please fill in Package Name, Price, and Description.");
+      return;
+    }
+
+    const featuresArray = planFeaturesText
+      .split("\n")
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+
+    const generatedId = editingPlan
+      ? editingPlan.id
+      : "plan-" + planName.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Math.random().toString(36).substring(2, 6);
+
+    const planData: dbPricingPlan = {
+      id: generatedId,
+      name: planName,
+      description: planDescription,
+      price: planPrice.startsWith("₹") ? planPrice : `₹${planPrice}`,
+      subscriptionDiscountPercent: Number(planDiscount) || 15,
+      icon: planIcon,
+      features: featuresArray.length > 0 ? featuresArray : ["Standard Detailing Service"],
+      popular: planPopular,
+      cta: planCta || "Book Now"
+    };
+
+    try {
+      await createOrUpdatePricingPlan(planData);
+      setShowPlanModal(false);
+      setEditingPlan(null);
+      resetPlanForm();
+      await fetchPricingPlans();
+      alert("Pricing package saved successfully!");
+    } catch (err: any) {
+      console.error("Error saving plan:", err);
+      alert("Failed to save pricing package: " + err.message);
+    }
+  };
+
+  const handleDeletePlan = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this pricing package? It will be removed from the public Pricing page.")) {
+      return;
+    }
+    try {
+      await deletePricingPlan(id);
+      await fetchPricingPlans();
+      alert("Pricing package deleted successfully!");
+    } catch (err: any) {
+      console.error("Error deleting plan:", err);
+      alert("Failed to delete pricing package.");
+    }
+  };
+
+  const resetPlanForm = () => {
+    setPlanId("");
+    setPlanName("");
+    setPlanDescription("");
+    setPlanPrice("");
+    setPlanDiscount(15);
+    setPlanIcon("zap");
+    setPlanFeaturesText("");
+    setPlanPopular(false);
+    setPlanCta("Book Now");
+  };
+
+  const openAddPlanModal = () => {
+    setEditingPlan(null);
+    resetPlanForm();
+    setShowPlanModal(true);
+  };
+
+  const openEditPlanModal = (plan: dbPricingPlan) => {
+    setEditingPlan(plan);
+    setPlanId(plan.id);
+    setPlanName(plan.name);
+    setPlanDescription(plan.description);
+    setPlanPrice(plan.price);
+    setPlanDiscount(plan.subscriptionDiscountPercent ?? 15);
+    setPlanIcon(plan.icon || "zap");
+    setPlanFeaturesText((plan.features || []).join("\n"));
+    setPlanPopular(plan.popular || false);
+    setPlanCta(plan.cta || "Book Now");
+    setShowPlanModal(true);
+  };
+
   useEffect(() => {
     if (authLoading || !user || !profile) return;
     const isAdminUser = profile.role === "admin" || profile.role === "super_admin";
@@ -541,10 +715,14 @@ export default function Admin() {
     if (activeTab === "services") {
       fetchServicesList();
     }
+    if (activeTab === "pricing") {
+      fetchPricingPlans();
+    }
     if ((activeTab === "users" || activeTab === "team_accounts") && isAdminUser) {
       fetchDirectoryUsers();
     }
   }, [activeTab, authLoading, user, profile]);
+
 
   // Initialize structures
   useEffect(() => {
@@ -577,8 +755,11 @@ export default function Admin() {
       fetchAdminEmployees();
     }
 
-    // 6. Custom Services Setup
+    // 6. Custom Services & Pricing Setup
     fetchServicesList();
+    fetchPricingPlans();
+    fetchAboutSettings();
+    fetchContactSettings();
 
     // Load price, image and description inputs
     const loadedPrices: Record<string, number> = {};
@@ -938,7 +1119,7 @@ export default function Admin() {
                 }`}
             >
               <Layers size={16} />
-              Pricing & Showcase
+              Services, Pricing & Content
             </button>
             <button
               onClick={() => setActiveTab("reviews")}
@@ -1467,27 +1648,656 @@ export default function Admin() {
             </div>
           )}
 
+          {/* UNIFIED SERVICES, PRICING, ABOUT & CONTACT MANAGEMENT HUB */}
+          {activeTab === "services" && (
+            <div className="space-y-6">
+              {/* Sub-Tabs Selector Bar */}
+              <div className="bg-white border border-gray-100 rounded-3xl p-4 shadow-sm flex flex-wrap gap-2 justify-between items-center">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setServiceSubTab("catalog")}
+                    className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      serviceSubTab === "catalog"
+                        ? "bg-primary text-white shadow"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Layers size={14} />
+                    Homepage Services ({servicesList.length})
+                  </button>
+
+                  <button
+                    onClick={() => setServiceSubTab("pricing")}
+                    className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      serviceSubTab === "pricing"
+                        ? "bg-primary text-white shadow"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <DollarSign size={14} />
+                    Pricing Packages ({pricingPlans.length})
+                  </button>
+
+                  <button
+                    onClick={() => setServiceSubTab("about")}
+                    className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      serviceSubTab === "about"
+                        ? "bg-primary text-white shadow"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Info size={14} />
+                    About Us Details
+                  </button>
+
+                  <button
+                    onClick={() => setServiceSubTab("contact")}
+                    className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      serviceSubTab === "contact"
+                        ? "bg-primary text-white shadow"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Phone size={14} />
+                    Contact Us Details
+                  </button>
+                </div>
+
+                {profile?.role !== "staff" && (
+                  <div>
+                    {serviceSubTab === "catalog" && (
+                      <button
+                        onClick={() => setIsAddingService(true)}
+                        className="bg-primary hover:bg-[#0b327b] text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider shadow cursor-pointer transition-all flex items-center gap-1.5"
+                      >
+                        <Plus size={15} />
+                        Add Service
+                      </button>
+                    )}
+                    {serviceSubTab === "pricing" && (
+                      <button
+                        onClick={openAddPlanModal}
+                        className="bg-primary hover:bg-[#0b327b] text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider shadow cursor-pointer transition-all flex items-center gap-1.5"
+                      >
+                        <Plus size={15} />
+                        Add Package
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* SUB-TAB 1: CATALOG SERVICES */}
+              {serviceSubTab === "catalog" && (
+                <div className="space-y-6">
+                  <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-heading font-extrabold text-dark text-lg">Detailing Services Catalog</h3>
+                        <p className="text-gray-400 text-xs">Manage base rates, showcase images, and card descriptions.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {servicesList.map((s) => (
+                        <div key={s.id} className="p-5 border border-gray-100 rounded-2xl bg-gray-50/30 space-y-3 flex flex-col justify-between">
+                          <div className="space-y-2">
+                            <div className="aspect-video rounded-xl overflow-hidden bg-gray-200">
+                              <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex justify-between items-start pt-1">
+                              <h4 className="font-bold text-dark text-sm">{s.name}</h4>
+                              <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded-full">₹{s.price}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 leading-relaxed">{s.description}</p>
+                          </div>
+
+                          {profile?.role !== "staff" && (
+                            <div className="flex gap-2 justify-end pt-2 border-t border-gray-100">
+                              <button
+                                onClick={() => openEditServiceModal(s)}
+                                className="bg-gray-100 hover:bg-gray-200 text-dark font-bold py-1.5 px-4 rounded-xl text-xs cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteService(s.id)}
+                                className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-1.5 px-4 rounded-xl text-xs cursor-pointer"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* BEFORE & AFTER PHOTO COMPARISON OVERRIDES */}
+                  <form onSubmit={saveServiceConfig} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-heading font-extrabold text-dark text-lg">Before & After Slider Config</h3>
+                      {profile?.role !== "staff" && (
+                        <button
+                          type="submit"
+                          className="bg-primary hover:bg-[#0b327b] text-white font-bold py-2.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow cursor-pointer"
+                        >
+                          Save Slider Config
+                        </button>
+                      )}
+                    </div>
+
+                    {showConfigAlert && (
+                      <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl text-xs font-bold flex items-center gap-2">
+                        <Sparkles size={16} />
+                        <span>Config Saved! Homepage comparison slider was updated.</span>
+                      </div>
+                    )}
+
+                    <div className="p-5 border border-gray-100 rounded-2xl space-y-4 bg-[#F8FAFC]/50 text-left">
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="flex items-center gap-2 pb-2">
+                          <input
+                            type="checkbox"
+                            id="useSeparateImages"
+                            disabled={profile?.role === "staff"}
+                            checked={beforeAfterInputs.useSeparateImages}
+                            onChange={(e) => setBeforeAfterInputs({ ...beforeAfterInputs, useSeparateImages: e.target.checked })}
+                            className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer"
+                          />
+                          <label htmlFor="useSeparateImages" className="text-xs font-bold text-gray-600 cursor-pointer select-none">
+                            Use separate before/after photos (if unchecked, CSS dirty filter is applied to after photo)
+                          </label>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-bold text-gray-400 uppercase">After Image URL</label>
+                          <input
+                            type="url"
+                            required
+                            disabled={profile?.role === "staff"}
+                            value={beforeAfterInputs.afterImage}
+                            onChange={(e) => setBeforeAfterInputs({ ...beforeAfterInputs, afterImage: e.target.value })}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3.5 text-xs font-mono text-dark"
+                          />
+                        </div>
+
+                        {beforeAfterInputs.useSeparateImages && (
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-bold text-gray-400 uppercase">Before Image URL</label>
+                            <input
+                              type="url"
+                              required
+                              disabled={profile?.role === "staff"}
+                              value={beforeAfterInputs.beforeImage}
+                              onChange={(e) => setBeforeAfterInputs({ ...beforeAfterInputs, beforeImage: e.target.value })}
+                              className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3.5 text-xs font-mono text-dark"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* SUB-TAB 2: PRICING PACKAGES */}
+              {serviceSubTab === "pricing" && (
+                <div className="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+                  <div className="flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                      <h3 className="font-heading font-extrabold text-dark text-xl flex items-center gap-2">
+                        <DollarSign size={22} className="text-primary" />
+                        Pricing & Subscription Packages
+                      </h3>
+                      <p className="text-gray-400 text-xs mt-1">
+                        Manage all pricing tiers, packages, features, and subscription discounts shown on the /pricing page.
+                      </p>
+                    </div>
+                  </div>
+
+                  {pricingLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                      {pricingPlans.map((plan) => (
+                        <div
+                          key={plan.id}
+                          className={`p-6 bg-white border rounded-3xl shadow-sm relative flex flex-col justify-between space-y-4 ${
+                            plan.popular ? "border-primary ring-2 ring-primary/10" : "border-gray-100"
+                          }`}
+                        >
+                          {plan.popular && (
+                            <span className="absolute -top-3 right-6 bg-primary text-white text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow">
+                              Most Popular
+                            </span>
+                          )}
+
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="font-heading font-extrabold text-dark text-lg">{plan.name}</h4>
+                              <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">{plan.description}</p>
+                            </div>
+
+                            <div className="flex items-baseline gap-2 pt-1">
+                              <span className="text-3xl font-black text-dark font-heading">{plan.price}</span>
+                              <span className="text-xs text-emerald-600 font-bold bg-emerald-50 py-0.5 px-2 rounded-full border border-emerald-100">
+                                Subscription: {plan.subscriptionDiscountPercent ?? 15}% OFF
+                              </span>
+                            </div>
+
+                            <div className="pt-2">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Package Features ({plan.features.length})</span>
+                              <ul className="space-y-1 text-xs text-gray-600">
+                                {plan.features.slice(0, 4).map((feat, idx) => (
+                                  <li key={idx} className="flex items-center gap-1.5">
+                                    <span className="text-green-500 font-bold">✓</span>
+                                    <span className="truncate">{feat}</span>
+                                  </li>
+                                ))}
+                                {plan.features.length > 4 && (
+                                  <li className="text-[10px] text-gray-400 font-bold font-mono">
+                                    +{plan.features.length - 4} more features
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+
+                          {profile?.role !== "staff" && (
+                            <div className="flex gap-2 justify-end pt-3 border-t border-gray-100">
+                              <button
+                                onClick={() => openEditPlanModal(plan)}
+                                className="bg-gray-100 hover:bg-gray-200 text-dark font-bold py-2 px-4 rounded-xl text-xs cursor-pointer transition-colors"
+                              >
+                                Edit Package
+                              </button>
+                              <button
+                                onClick={() => handleDeletePlan(plan.id)}
+                                className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2 px-4 rounded-xl text-xs cursor-pointer transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SUB-TAB 3: ABOUT US PAGE DETAILS */}
+              {serviceSubTab === "about" && (
+                <form onSubmit={handleSaveAboutSettings} className="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-heading font-extrabold text-dark text-xl flex items-center gap-2">
+                        <Info size={22} className="text-primary" />
+                        About Us Page Content Management
+                      </h3>
+                      <p className="text-gray-400 text-xs mt-1">
+                        Edit the hero titles, story paragraphs, image, and dynamic statistics displayed on the /about page.
+                      </p>
+                    </div>
+                    {profile?.role !== "staff" && (
+                      <button
+                        type="submit"
+                        className="bg-primary hover:bg-[#0b327b] text-white font-bold py-2.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow cursor-pointer"
+                      >
+                        Save About Details
+                      </button>
+                    )}
+                  </div>
+
+                  {aboutSavedAlert && (
+                    <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl text-xs font-bold flex items-center gap-2">
+                      <Sparkles size={16} />
+                      <span>About Us page content updated successfully!</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hero Eyebrow Tag</label>
+                      <input
+                        type="text"
+                        required
+                        value={aboutInputs.badge}
+                        onChange={(e) => setAboutInputs({ ...aboutInputs, badge: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hero Main Heading</label>
+                      <input
+                        type="text"
+                        required
+                        value={aboutInputs.title}
+                        onChange={(e) => setAboutInputs({ ...aboutInputs, title: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hero Subtitle Paragraph</label>
+                      <textarea
+                        required
+                        rows={2}
+                        value={aboutInputs.subtitle}
+                        onChange={(e) => setAboutInputs({ ...aboutInputs, subtitle: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Main Story Title</label>
+                      <input
+                        type="text"
+                        required
+                        value={aboutInputs.storyHeading}
+                        onChange={(e) => setAboutInputs({ ...aboutInputs, storyHeading: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Story Paragraph 1</label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={aboutInputs.storyText1}
+                        onChange={(e) => setAboutInputs({ ...aboutInputs, storyText1: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Story Paragraph 2</label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={aboutInputs.storyText2}
+                        onChange={(e) => setAboutInputs({ ...aboutInputs, storyText2: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Story Showcase Image URL</label>
+                      <input
+                        type="url"
+                        required
+                        value={aboutInputs.storyImageUrl}
+                        onChange={(e) => setAboutInputs({ ...aboutInputs, storyImageUrl: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100 text-left">
+                    <span className="text-xs font-bold text-dark uppercase tracking-wider block mb-3">Company Statistics Grid</span>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase">Stat 1 Count</label>
+                        <input
+                          type="text"
+                          value={aboutInputs.stat1Number}
+                          onChange={(e) => setAboutInputs({ ...aboutInputs, stat1Number: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-dark"
+                        />
+                        <input
+                          type="text"
+                          value={aboutInputs.stat1Label}
+                          onChange={(e) => setAboutInputs({ ...aboutInputs, stat1Label: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1 text-[10px] text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase">Stat 2 Count</label>
+                        <input
+                          type="text"
+                          value={aboutInputs.stat2Number}
+                          onChange={(e) => setAboutInputs({ ...aboutInputs, stat2Number: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-dark"
+                        />
+                        <input
+                          type="text"
+                          value={aboutInputs.stat2Label}
+                          onChange={(e) => setAboutInputs({ ...aboutInputs, stat2Label: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1 text-[10px] text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase">Stat 3 Count</label>
+                        <input
+                          type="text"
+                          value={aboutInputs.stat3Number}
+                          onChange={(e) => setAboutInputs({ ...aboutInputs, stat3Number: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-dark"
+                        />
+                        <input
+                          type="text"
+                          value={aboutInputs.stat3Label}
+                          onChange={(e) => setAboutInputs({ ...aboutInputs, stat3Label: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1 text-[10px] text-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase">Stat 4 Count</label>
+                        <input
+                          type="text"
+                          value={aboutInputs.stat4Number}
+                          onChange={(e) => setAboutInputs({ ...aboutInputs, stat4Number: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-dark"
+                        />
+                        <input
+                          type="text"
+                          value={aboutInputs.stat4Label}
+                          onChange={(e) => setAboutInputs({ ...aboutInputs, stat4Label: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1 text-[10px] text-gray-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              )}
+
+              {/* SUB-TAB 4: CONTACT US PAGE DETAILS */}
+              {serviceSubTab === "contact" && (
+                <form onSubmit={handleSaveContactSettings} className="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-heading font-extrabold text-dark text-xl flex items-center gap-2">
+                        <Phone size={22} className="text-primary" />
+                        Contact Us Page & Support Details
+                      </h3>
+                      <p className="text-gray-400 text-xs mt-1">
+                        Edit phone numbers, email, operational coverage address, and WhatsApp widget details.
+                      </p>
+                    </div>
+                    {profile?.role !== "staff" && (
+                      <button
+                        type="submit"
+                        className="bg-primary hover:bg-[#0b327b] text-white font-bold py-2.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow cursor-pointer"
+                      >
+                        Save Contact Details
+                      </button>
+                    )}
+                  </div>
+
+                  {contactSavedAlert && (
+                    <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl text-xs font-bold flex items-center gap-2">
+                      <Sparkles size={16} />
+                      <span>Contact Us page details updated successfully!</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hero Eyebrow Badge</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactInputs.badge}
+                        onChange={(e) => setContactInputs({ ...contactInputs, badge: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hero Title</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactInputs.title}
+                        onChange={(e) => setContactInputs({ ...contactInputs, title: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hero Subtitle</label>
+                      <textarea
+                        required
+                        rows={2}
+                        value={contactInputs.subtitle}
+                        onChange={(e) => setContactInputs({ ...contactInputs, subtitle: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Primary Helpline Phone 1</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactInputs.phone1}
+                        onChange={(e) => setContactInputs({ ...contactInputs, phone1: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Secondary Helpline Phone 2</label>
+                      <input
+                        type="text"
+                        value={contactInputs.phone2}
+                        onChange={(e) => setContactInputs({ ...contactInputs, phone2: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Support Email Address</label>
+                      <input
+                        type="email"
+                        required
+                        value={contactInputs.email}
+                        onChange={(e) => setContactInputs({ ...contactInputs, email: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Coverage Area Address</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactInputs.address}
+                        onChange={(e) => setContactInputs({ ...contactInputs, address: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">WhatsApp Number (e.g. 918882540255)</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactInputs.whatsappNumber}
+                        onChange={(e) => setContactInputs({ ...contactInputs, whatsappNumber: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">WhatsApp Floating Widget Message</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactInputs.whatsappMessage}
+                        onChange={(e) => setContactInputs({ ...contactInputs, whatsappMessage: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
           {/* REVIEWS PANEL */}
           {activeTab === "reviews" && (
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
-              <h3 className="font-heading font-extrabold text-dark text-lg">Customer Reviews & Review Requests</h3>
+              <h3 className="font-heading font-extrabold text-dark text-lg">Customer Reviews & Cloudinary Media Feedback</h3>
 
               <div className="space-y-4">
                 {reviews.map((r) => (
-                  <div key={r.id} className="p-4 border border-gray-100 rounded-2xl bg-gray-50/20 space-y-3">
+                  <div key={r.id} className="p-5 border border-gray-100 rounded-2xl bg-gray-50/30 space-y-3">
                     <div className="flex justify-between items-start gap-2">
                       <div>
                         <h4 className="font-bold text-dark text-sm">{r.name}</h4>
-                        <span className="text-[10px] text-gray-400 font-mono">{r.email}</span>
+                        <span className="text-[10px] text-gray-400 font-mono block">{r.email}</span>
+                        {r.serviceName && (
+                          <span className="inline-block text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-1">
+                            {r.serviceName}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex text-[#F4B400] gap-0.5">
+                      <div className="flex text-[#F4B400] gap-0.5 items-center bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
                         {Array.from({ length: r.rating }).map((_, i) => (
                           <Star key={i} size={13} className="fill-[#F4B400]" />
                         ))}
+                        <span className="text-[10px] font-black text-dark ml-1">{r.rating}/5</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 leading-relaxed italic">"{r.message}"</p>
-                    <div className="text-[9px] text-gray-400 font-bold">{r.date}</div>
+
+                    <p className="text-xs text-dark font-medium leading-relaxed italic bg-white p-3 rounded-xl border border-gray-100">
+                      "{r.message}"
+                    </p>
+
+                    {/* Customer Attached Photos & Videos */}
+                    {(r.images?.length || r.videos?.length) ? (
+                      <div className="space-y-1 pt-1">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
+                          Verified Customer Media Attachments
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {r.images?.map((imgUrl, i) => (
+                            <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" className="relative group">
+                              <img src={imgUrl} alt="Customer review photo" className="w-16 h-16 rounded-xl object-cover border border-gray-200 shadow-sm group-hover:scale-105 transition-transform" />
+                            </a>
+                          ))}
+                          {r.videos?.map((vidUrl, i) => (
+                            <video key={i} src={vidUrl} controls className="w-24 h-16 rounded-xl object-cover border border-gray-200 shadow-sm bg-black" />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="text-[9px] text-gray-400 font-bold pt-1 flex justify-between items-center">
+                      <span>Submitted: {r.date}</span>
+                      {r.adminReply && (
+                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold">✓ Admin Replied</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1585,7 +2395,8 @@ export default function Admin() {
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 shrink-0">
                                 <img
-                                  src={emp.photo || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"}
+                                  src={emp.photo || getCartoonAvatar(emp.name || emp.email)}
+                                  onError={(e) => handleAvatarError(e, emp.name || emp.email)}
                                   alt={emp.name}
                                   className="w-full h-full object-cover"
                                 />
@@ -2175,6 +2986,160 @@ export default function Admin() {
           </motion.div>
         </div>
       )}
+
+      {/* PRICING PACKAGE EDIT / CREATE MODAL */}
+      {showPlanModal && (
+        <div className="fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100 space-y-6"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="font-heading font-extrabold text-dark text-xl">
+                {editingPlan ? "Edit Pricing Package" : "Create New Pricing Package"}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPlanModal(false);
+                  setEditingPlan(null);
+                  resetPlanForm();
+                }}
+                className="text-gray-400 hover:text-dark text-xs font-bold uppercase cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handlePlanSubmit} className="space-y-4 text-left">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Package Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Starter Package, Gold Protection"
+                  value={planName}
+                  onChange={(e) => setPlanName(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Price (₹)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ₹999 or 999"
+                    value={planPrice}
+                    onChange={(e) => setPlanPrice(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Subscription Discount %</label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    max={100}
+                    value={planDiscount}
+                    onChange={(e) => setPlanDiscount(Number(e.target.value))}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Package Description</label>
+                <textarea
+                  required
+                  rows={2}
+                  placeholder="Short summary of what this package offers..."
+                  value={planDescription}
+                  onChange={(e) => setPlanDescription(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Icon Badge</label>
+                  <select
+                    value={planIcon}
+                    onChange={(e) => setPlanIcon(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark cursor-pointer"
+                  >
+                    <option value="zap">Zap (⚡ Quick)</option>
+                    <option value="star">Star (⭐ Popular)</option>
+                    <option value="shield">Shield (🛡️ Premium)</option>
+                    <option value="trophy">Trophy (🏆 Ultimate)</option>
+                    <option value="sparkles">Sparkles (✨ Gloss)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">CTA Button Text</label>
+                  <input
+                    type="text"
+                    required
+                    value={planCta}
+                    onChange={(e) => setPlanCta(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Package Features (One per line)</label>
+                <textarea
+                  required
+                  rows={5}
+                  placeholder={`Eco foam exterior wash\nWheel cleaning & shine\nDoor frame wipe down`}
+                  value={planFeaturesText}
+                  onChange={(e) => setPlanFeaturesText(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark resize-none font-mono"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="planPopular"
+                  checked={planPopular}
+                  onChange={(e) => setPlanPopular(e.target.checked)}
+                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer"
+                />
+                <label htmlFor="planPopular" className="text-xs font-bold text-gray-600 cursor-pointer select-none">
+                  Highlight as "Most Popular" package
+                </label>
+              </div>
+
+              <div className="pt-4 flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPlanModal(false);
+                    setEditingPlan(null);
+                    resetPlanForm();
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-primary hover:bg-[#0b327b] text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider shadow cursor-pointer transition-all"
+                >
+                  {editingPlan ? "Save Package Changes" : "Create Package"}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
+

@@ -136,22 +136,22 @@ export default function BookPage() {
   return (
     <div className="pt-24 min-h-screen bg-[#F8FAFC]">
       {/* Upper header */}
-      <div className="bg-[#070C16] text-white py-16 relative overflow-hidden">
+      <div className="bg-[#070C16] text-white py-10 md:py-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/10" />
         <div className="container mx-auto px-4 md:px-6 relative z-10 text-center">
-          <span className="text-[#F4B400] font-heading font-semibold tracking-wider uppercase text-xs mb-3 block">
+          <span className="text-[#F4B400] font-heading font-semibold tracking-wider uppercase text-[11px] mb-1.5 block">
             — PREMIUM DOORSTEP CARE —
           </span>
-          <h1 className="text-3xl md:text-5xl font-heading font-extrabold mb-4 text-white">
+          <h1 className="text-2xl md:text-4xl font-heading font-extrabold mb-2 text-white max-w-xl mx-auto leading-[1.1] tracking-tight">
             Book Doorstep Detailing
           </h1>
-          <p className="text-gray-400 text-sm max-w-xl mx-auto leading-relaxed">
+          <p className="text-gray-300 text-xs md:text-sm max-w-lg mx-auto leading-relaxed">
             Select your schedule slot and location. Our equipped mobile detailing experts will shine your vehicle at your doorstep.
           </p>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-10">
         <div className="max-w-2xl mx-auto">
           
           {/* Progress Indicators */}
@@ -446,6 +446,17 @@ export default function BookPage() {
                         </div>
                       </div>
 
+                      {/* Pay on Delivery Guarantee Box */}
+                      <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-800 text-xs space-y-1 text-left">
+                        <div className="font-extrabold flex items-center gap-1.5 text-emerald-900">
+                          <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
+                          <span>💵 100% Pay on Delivery — Zero Advance Needed!</span>
+                        </div>
+                        <p className="text-emerald-700 text-[11px] leading-relaxed">
+                          No upfront payment required. Pay via Cash or UPI to your detailing squad technician only after your car wash is finished & inspected to your 100% satisfaction.
+                        </p>
+                      </div>
+
                       <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                         <button
                           type="button"
@@ -458,7 +469,7 @@ export default function BookPage() {
                           type="submit"
                           className="bg-primary hover:bg-[#0b327b] text-white font-bold py-3.5 px-6 rounded-2xl text-xs uppercase tracking-wider cursor-pointer shadow-md"
                         >
-                          Confirm Booking Slot
+                          Confirm Booking (Pay on Delivery)
                         </button>
                       </div>
                     </motion.div>

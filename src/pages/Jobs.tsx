@@ -48,13 +48,13 @@ export default function JobsPage() {
   return (
     <div className="pt-24 min-h-screen bg-light">
       {/* Banner */}
-      <div className="bg-dark text-white py-20 relative overflow-hidden">
+      <div className="bg-dark text-white py-12 md:py-14 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/10" />
         <div className="container mx-auto px-4 md:px-6 relative z-10 text-center">
           <motion.span
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-secondary font-semibold tracking-wider uppercase text-sm mb-4 block animate-pulse"
+            className="text-secondary font-semibold tracking-wider uppercase text-[11px] mb-2 block animate-pulse"
           >
             Join Our Team
           </motion.span>
@@ -62,7 +62,7 @@ export default function JobsPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-6xl font-heading font-extrabold mb-6"
+            className="text-3xl md:text-5xl font-heading font-extrabold max-w-3xl mx-auto leading-[1.1] tracking-tight mb-3"
           >
             Part-Time Job Opportunities
           </motion.h1>
@@ -70,14 +70,14 @@ export default function JobsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.8 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto"
+            className="text-gray-300 text-sm md:text-base max-w-xl mx-auto leading-relaxed"
           >
             Earn extra income with a professional, friendly, and fully flexible car detailing schedule. Perfect for college students and freelancers!
           </motion.p>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 md:px-6 py-20">
+      <div className="container mx-auto px-4 md:px-6 py-10 md:py-14">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
           {/* Job details side (Left 5-columns) */}

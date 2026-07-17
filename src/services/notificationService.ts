@@ -10,45 +10,134 @@ import {
   logAuditAction
 } from "./dbService";
 
-// HTML5 Notification Helper
+// Multi-Device Broadcast Channel across active browser windows/tabs
+export const notificationBroadcastChannel = typeof window !== "undefined" && "BroadcastChannel" in window
+  ? new BroadcastChannel("va_multi_device_notifications_v1")
+  : null;
+
+// Multi-Device Fingerprint Helper
+const getOrCreateDeviceId = () => {
+  let deviceId = localStorage.getItem("va_device_id");
+  if (!deviceId) {
+    deviceId = "dev_" + Math.random().toString(36).substring(2, 12) + "_" + Date.now();
+    localStorage.setItem("va_device_id", deviceId);
+  }
+  return deviceId;
+};
+
+// HTML5 & Service Worker Push Notification Dispatcher for all granted devices
 export const triggerBrowserNotification = (title: string, body: string, iconUrl?: string, deepLink?: string) => {
   if (!("Notification" in window)) return;
   if (Notification.permission === "granted") {
     const icon = iconUrl || "/va logo-DCJxvIQ4.png";
-    const notification = new Notification(title, {
-      body,
-      icon,
-      badge: icon
-    });
-    if (deepLink) {
-      notification.onclick = (e) => {
-        e.preventDefault();
-        window.open(deepLink, "_blank");
-      };
+    
+    // Attempt Service Worker Notification first for background capability
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(title, {
+          body,
+          icon,
+          badge: icon,
+          data: { url: deepLink || "/notifications" },
+          vibrate: [100, 50, 100]
+        } as any);
+      }).catch(() => {
+        const notification = new Notification(title, { body, icon, badge: icon });
+        if (deepLink) {
+          notification.onclick = (e) => {
+            e.preventDefault();
+            window.open(deepLink, "_blank");
+          };
+        }
+      });
+    } else {
+      const notification = new Notification(title, { body, icon, badge: icon });
+      if (deepLink) {
+        notification.onclick = (e) => {
+          e.preventDefault();
+          window.open(deepLink, "_blank");
+        };
+      }
     }
   }
 };
 
-// Request Browser Notifications Permission & Register Device Token
+// Multi-Device Notification Broadcaster (pop-up on current device + sync across all granted devices & tabs)
+export const dispatchMultiDeviceNotification = (
+  title: string,
+  body: string,
+  iconUrl?: string,
+  deepLink?: string,
+  userId?: string
+) => {
+  // 1. Pop-up on current local device if permission granted
+  triggerBrowserNotification(title, body, iconUrl, deepLink);
+
+  // 2. Broadcast across all open browser windows and tabs
+  if (notificationBroadcastChannel) {
+    notificationBroadcastChannel.postMessage({
+      type: "PUSH_NOTIFICATION_DISPATCH",
+      userId,
+      title,
+      body,
+      iconUrl,
+      deepLink,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+// Listen for broadcasted push notifications across tabs/windows
+if (notificationBroadcastChannel) {
+  notificationBroadcastChannel.onmessage = (event) => {
+    if (event.data && event.data.type === "PUSH_NOTIFICATION_DISPATCH") {
+      const { title, body, iconUrl, deepLink } = event.data;
+      triggerBrowserNotification(title, body, iconUrl, deepLink);
+    }
+  };
+}
+
+// Request Browser Notifications Permission & Register Multi-Device Token in Database
 export const requestNotificationPermission = async (userId: string): Promise<string | null> => {
   if (!("Notification" in window)) return null;
 
   try {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      // Simulate/register device FCM token
-      const simulatedToken = "fcm-tok-" + Math.random().toString(36).substring(2, 15) + "-" + userId;
+      const deviceId = getOrCreateDeviceId();
+      const simulatedToken = `fcm-tok-${deviceId}-${userId}`;
+
+      const deviceInfo = {
+        deviceId,
+        simulatedToken,
+        userId,
+        grantedAt: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        platform: navigator.platform
+      };
       
-      // Store in simulator device tokens registry
+      // Store in multi-device tokens registry
       const storedTokensRaw = localStorage.getItem("sim_device_tokens") || "[]";
       const storedTokens = JSON.parse(storedTokensRaw);
-      if (!storedTokens.includes(simulatedToken)) {
-        storedTokens.push(simulatedToken);
+      if (!storedTokens.some((t: any) => t.deviceId === deviceId && t.userId === userId)) {
+        storedTokens.push(deviceInfo);
         localStorage.setItem("sim_device_tokens", JSON.stringify(storedTokens));
       }
-      
-      console.log("FCM Device Token registered successfully:", simulatedToken);
-      await logAuditAction(`Device token registered for user: ${userId}`);
+
+      // Sync device registration to Firestore if online
+      try {
+        await db.collection("users").doc(userId).collection("devices").doc(deviceId).set(deviceInfo, { merge: true });
+      } catch (e) {
+        // local fallback
+      }
+
+      // Register Service Worker for background push
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
+
+      console.log("Multi-Device Notification Permission granted for device:", deviceId);
+      await logAuditAction(`Multi-Device Notification permission granted for user: ${userId} on device: ${deviceId}`);
       return simulatedToken;
     }
   } catch (err) {
@@ -215,11 +304,12 @@ export const executeNotificationCampaign = async (campaign: NotificationCampaign
   const currentOS = getOSName();
 
   for (const targetUser of targetUsers) {
+    const targetUserId = targetUser.id || targetUser.uid || "all_users";
     const extraFields: Partial<dbNotification> = {
-      subtitle: campaign.subtitle,
-      deepLink: campaign.deepLink,
-      imageUrl: campaign.imageUrl,
-      actionButtons: campaign.actionButtons,
+      subtitle: campaign.subtitle || "",
+      deepLink: campaign.deepLink || "",
+      imageUrl: campaign.imageUrl || "",
+      actionButtons: campaign.actionButtons || [],
       receiverRole: targetUser.role || "customer",
       browser: currentBrowser,
       operatingSystem: currentOS,
@@ -229,7 +319,7 @@ export const executeNotificationCampaign = async (campaign: NotificationCampaign
 
     // Save locally/database
     await sendNotification(
-      targetUser.id,
+      targetUserId,
       campaign.title,
       campaign.description,
       campaign.category,
@@ -276,36 +366,5 @@ export const simulatedSMSDispatcher = (phone: string, title: string) => {
 export const getCampaignHistory = (): any[] => {
   const raw = localStorage.getItem("sim_campaign_history");
   if (raw) return JSON.parse(raw);
-
-  // default seed data for dashboards
-  const defaults = [
-    {
-      id: "camp-default-1",
-      title: "Weekend Foam Wash Offer!",
-      subtitle: "Get flat 20% off",
-      description: "Book any detailing squad foam wash session this Saturday or Sunday and apply coupon WEEKEND20 at checkout.",
-      category: "Offers",
-      priority: "normal",
-      targetType: "customers",
-      sentCount: 22,
-      sentTime: "2026-07-10T10:00:00.000Z",
-      readRate: "86%",
-      ctr: "24%"
-    },
-    {
-      id: "camp-default-2",
-      title: "Emergency Squad Rerouting",
-      subtitle: "Severe Weather Warning",
-      description: "Severe rain advisory. Detailing crews in Dwarka are advised to seek temporary shelter until 2 PM.",
-      category: "Emergency",
-      priority: "critical",
-      targetType: "employees",
-      sentCount: 3,
-      sentTime: "2026-07-08T08:15:00.000Z",
-      readRate: "100%",
-      ctr: "66%"
-    }
-  ];
-  localStorage.setItem("sim_campaign_history", JSON.stringify(defaults));
-  return defaults;
+  return [];
 };

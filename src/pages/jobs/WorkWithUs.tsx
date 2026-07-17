@@ -29,9 +29,9 @@ export default function WorkWithUs() {
         {/* Header */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-8 space-y-4">
-            <span className="text-primary font-bold text-xs uppercase tracking-widest block">— COMPANY CULTURE —</span>
-            <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dark tracking-tight">Work With Us</h1>
-            <p className="text-gray-600 text-base leading-relaxed">
+            <span className="text-primary font-bold text-[11px] uppercase tracking-widest block">— COMPANY CULTURE —</span>
+            <h1 className="text-3xl md:text-4xl font-heading font-extrabold text-dark tracking-tight leading-[1.1]">Work With Us</h1>
+            <p className="text-gray-600 text-sm leading-relaxed max-w-xl">
               We are building the future of mobile car & bike detailing. We believe in providing vocational growth, technical knowledge, safety compliance, and a friendly, supportive environment for all.
             </p>
           </div>

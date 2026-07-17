@@ -6,10 +6,10 @@ export default function Footer() {
   return (
     <footer className="bg-[#0B1220] text-gray-400 py-16 border-t border-white/5 relative">
       <div className="container mx-auto px-4 md:px-6">
-        
+
         {/* Foot Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
-          
+
           {/* Brand Col */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2 mb-4">
@@ -51,7 +51,7 @@ export default function Footer() {
               <li><Link to="/" className="hover:text-[#F4B400] transition-colors">Home</Link></li>
               <li><Link to="/services" className="hover:text-[#F4B400] transition-colors">Services</Link></li>
               <li><Link to="/pricing" className="hover:text-[#F4B400] transition-colors">Pricing</Link></li>
-              <li><a href="#gallery" className="hover:text-[#F4B400] transition-colors">Gallery</a></li>
+              <li><Link to="/gallery" className="hover:text-[#F4B400] transition-colors">Gallery</Link></li>
               <li><Link to="/about" className="hover:text-[#F4B400] transition-colors">About Us</Link></li>
               <li><Link to="/contact" className="hover:text-[#F4B400] transition-colors">Contact</Link></li>
             </ul>
@@ -97,7 +97,7 @@ export default function Footer() {
             </div>
             <div className="flex items-start gap-2.5">
               <MapPin size={14} className="text-[#F4B400] mt-0.5 shrink-0" />
-              <span className="leading-relaxed">123, Clean Street, New Delhi - 110001</span>
+              <span className="leading-relaxed">Everywhere in Kanpur nagar</span>
             </div>
           </div>
 

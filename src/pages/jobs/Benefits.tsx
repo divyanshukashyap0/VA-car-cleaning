@@ -99,10 +99,10 @@ export default function Benefits() {
         </div>
 
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto space-y-4">
-          <span className="text-primary font-bold text-xs uppercase tracking-widest block">— WORK PARTNER PERKS —</span>
-          <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dark tracking-tight">Detailing Benefits</h1>
-          <p className="text-gray-600 text-sm">
+        <div className="text-center max-w-xl mx-auto space-y-3">
+          <span className="text-primary font-bold text-[11px] uppercase tracking-widest block">— WORK PARTNER PERKS —</span>
+          <h1 className="text-3xl md:text-4xl font-heading font-extrabold text-dark tracking-tight leading-[1.1]">Detailing Benefits</h1>
+          <p className="text-gray-600 text-xs md:text-sm leading-relaxed">
             We value our detailing crew. We invest in free vocational technical training, safety kits, and commissions to build careers.
           </p>
         </div>

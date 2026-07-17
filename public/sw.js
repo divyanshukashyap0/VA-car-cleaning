@@ -1,78 +1,70 @@
-const CACHE_NAME = "va-car-cleaning-v1";
-const ASSETS_TO_CACHE = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  "/icon.svg"
-];
-
-// Install Event - Pre-cache essential core assets
+// Service Worker for Multi-Device Background Push Notifications
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("[Service Worker] Pre-caching offline assets");
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
-// Activate Event - Clean up stale caches
 self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// Receive push notification messages
+self.addEventListener("push", (event) => {
+  let data = { title: "VA Car Detailing", body: "You have a new update!" };
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (e) {
+    if (event.data) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body || "New update from VA Car Detailing",
+    icon: data.icon || "/va logo-DCJxvIQ4.png",
+    badge: data.badge || "/va logo-DCJxvIQ4.png",
+    data: {
+      url: data.deepLink || "/notifications"
+    },
+    vibrate: [100, 50, 100],
+    requireInteraction: data.priority === "high" || data.priority === "critical"
+  };
+
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log("[Service Worker] Clearing old cache:", cache);
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    self.registration.showNotification(data.title || "VA Car Detailing", options)
   );
 });
 
-// Fetch Event - Serve cached assets or fetch from network
-self.addEventListener("fetch", (event) => {
-  // Only intercept GET requests (avoid POST/PUT/DELETE throwing errors on cache.put)
-  if (event.request.method !== "GET") return;
+// Listen for postMessage from main thread
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SHOW_NOTIFICATION") {
+    const options = {
+      body: event.data.body,
+      icon: event.data.iconUrl || "/va logo-DCJxvIQ4.png",
+      badge: "/va logo-DCJxvIQ4.png",
+      data: { url: event.data.deepLink || "/notifications" },
+      vibrate: [100, 50, 100]
+    };
+    self.registration.showNotification(event.data.title, options);
+  }
+});
 
-  // Only intercept HTTP/HTTPS requests (avoid chrome-extension or other schemes)
-  if (!event.request.url.startsWith(self.location.origin)) return;
+// Handle notification clicks
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/notifications";
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(targetUrl) && "focus" in client) {
+          return client.focus();
+        }
       }
-
-      return fetch(event.request)
-        .then((networkResponse) => {
-          // If response is invalid, just return it
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
-            return networkResponse;
-          }
-
-          // Cache dynamically fetched resources
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-
-          return networkResponse;
-        })
-        .catch(() => {
-          // Handle offline fallback if appropriate
-          if (event.request.mode === "navigate") {
-            return caches.match("/index.html");
-          }
-          // Return a 503 Service Unavailable response instead of undefined to avoid service worker TypeError
-          return new Response("Service Unavailable (Offline)", {
-            status: 503,
-            statusText: "Service Unavailable",
-            headers: new Headers({ "Content-Type": "text/plain" })
-          });
-        });
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
     })
   );
 });

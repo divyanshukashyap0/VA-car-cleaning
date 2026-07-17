@@ -44,9 +44,9 @@ export default function ExteriorWash() {
           {/* LEFT: Copy & Steps */}
           <div className="lg:col-span-7 space-y-8">
             <div className="space-y-4">
-              <span className="text-primary font-bold text-xs uppercase tracking-widest block">— PREMIUM DOORSTEP SERVICES —</span>
-              <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dark tracking-tight">Exterior Wash</h1>
-              <p className="text-gray-600 text-base leading-relaxed">
+              <span className="text-primary font-bold text-[11px] uppercase tracking-widest block">— PREMIUM DOORSTEP SERVICES —</span>
+              <h1 className="text-3xl md:text-4xl font-heading font-extrabold text-dark tracking-tight leading-[1.1]">Exterior Wash</h1>
+              <p className="text-gray-600 text-sm leading-relaxed max-w-xl">
                 Remove accumulated grit, dust, and atmospheric pollution safely. We utilize high-lubricity active foam technologies and scratch-free microfiber mitts right in your driveway.
               </p>
               <div className="inline-flex items-center gap-3 bg-primary/5 py-2 px-4 rounded-xl border border-primary/10">

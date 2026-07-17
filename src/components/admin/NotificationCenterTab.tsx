@@ -14,7 +14,10 @@ import {
   Smartphone,
   CheckCircle,
   AlertTriangle,
-  Play
+  Play,
+  Bookmark,
+  Trash2,
+  Plus
 } from "lucide-react";
 import {
   executeNotificationCampaign,
@@ -23,10 +26,82 @@ import {
 } from "../../services/notificationService";
 import { getAllUsers, logAuditAction } from "../../services/dbService";
 
+interface NotificationTemplate {
+  id: string;
+  name: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  category: string;
+  priority: "low" | "normal" | "high" | "critical";
+  deepLink?: string;
+  isBuiltIn?: boolean;
+}
+
+const defaultTemplates: NotificationTemplate[] = [
+  {
+    id: "tpl-1",
+    name: "🚗 Squad Dispatched",
+    title: "Technician Dispatched!",
+    subtitle: "Squad is en route to your location",
+    description: "Your vehicle detailing technician has been dispatched and is heading to your doorstep. Please ensure vehicle accessibility.",
+    category: "Services",
+    priority: "high",
+    deepLink: "/account",
+    isBuiltIn: true
+  },
+  {
+    id: "tpl-2",
+    name: "🧼 Wash Completed",
+    title: "Vehicle Detailing Completed!",
+    subtitle: "Ready for your inspection",
+    description: "Your vehicle cleaning session is finished! Please inspect your car and pay on delivery via Cash or UPI.",
+    category: "Services",
+    priority: "high",
+    deepLink: "/account",
+    isBuiltIn: true
+  },
+  {
+    id: "tpl-3",
+    name: "🌧️ Rain Advisory",
+    title: "Rain Advisory Notice",
+    subtitle: "Outdoor Slot Rescheduling",
+    description: "Due to heavy rainfall in your area, outdoor detailing slots are being temporarily delayed for squad safety.",
+    category: "Emergency",
+    priority: "critical",
+    deepLink: "/contact",
+    isBuiltIn: true
+  },
+  {
+    id: "tpl-4",
+    name: "🎉 15% Detailing Offer",
+    title: "Special Detailing Discount!",
+    subtitle: "Flat 15% OFF",
+    description: "Book any Premium Detailing or Interior Vacuum session today and enjoy flat 15% discount using code CLEAN15!",
+    category: "Offers",
+    priority: "normal",
+    deepLink: "/book",
+    isBuiltIn: true
+  },
+  {
+    id: "tpl-5",
+    name: "⏰ Slot Reminder",
+    title: "Tomorrow's Detailing Slot",
+    subtitle: "Doorstep Appointment Reminder",
+    description: "This is a quick reminder that your car cleaning slot is scheduled for tomorrow. Our squad will arrive on time.",
+    category: "System",
+    priority: "normal",
+    deepLink: "/account",
+    isBuiltIn: true
+  }
+];
+
 export default function NotificationCenterTab() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [drafts, setDrafts] = useState<any[]>([]);
+  const [customTemplates, setCustomTemplates] = useState<NotificationTemplate[]>([]);
+  const [templateSuccessAlert, setTemplateSuccessAlert] = useState(false);
 
   // Composer Form States
   const [title, setTitle] = useState("");
@@ -52,7 +127,58 @@ export default function NotificationCenterTab() {
     
     const savedDrafts = localStorage.getItem("sim_campaign_drafts");
     if (savedDrafts) setDrafts(JSON.parse(savedDrafts));
+
+    const savedTpls = localStorage.getItem("sim_notification_templates");
+    if (savedTpls) {
+      try {
+        setCustomTemplates(JSON.parse(savedTpls));
+      } catch (e) {
+        setCustomTemplates([]);
+      }
+    }
   }, []);
+
+  const allTemplates = [...defaultTemplates, ...customTemplates];
+
+  const handleApplyTemplate = (tpl: NotificationTemplate) => {
+    setTitle(tpl.title || "");
+    setSubtitle(tpl.subtitle || "");
+    setDescription(tpl.description || "");
+    setCategory(tpl.category || "System");
+    setPriority(tpl.priority || "normal");
+    setDeepLink(tpl.deepLink || "");
+  };
+
+  const handleSaveAsTemplate = () => {
+    if (!title || !description) {
+      alert("Please enter a title and description before saving as a template!");
+      return;
+    }
+    const templateName = prompt("Enter a short name for this Pre-written Template:", title) || title;
+    const newTpl: NotificationTemplate = {
+      id: "custom-tpl-" + Date.now(),
+      name: templateName,
+      title,
+      subtitle,
+      description,
+      category,
+      priority,
+      deepLink,
+      isBuiltIn: false
+    };
+    const updated = [newTpl, ...customTemplates];
+    setCustomTemplates(updated);
+    localStorage.setItem("sim_notification_templates", JSON.stringify(updated));
+    setTemplateSuccessAlert(true);
+    setTimeout(() => setTemplateSuccessAlert(false), 3000);
+  };
+
+  const handleDeleteTemplate = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = customTemplates.filter((t) => t.id !== id);
+    setCustomTemplates(updated);
+    localStorage.setItem("sim_notification_templates", JSON.stringify(updated));
+  };
 
   const handleSendNow = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,6 +311,46 @@ export default function NotificationCenterTab() {
             <Send size={18} className="text-primary" />
             Notification Campaign Composer
           </h3>
+
+          {/* Quick Pre-written Templates Bar */}
+          <div className="bg-gray-50/80 border border-gray-100 p-4 rounded-2xl space-y-2 text-left">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                <Bookmark size={12} className="text-primary" />
+                Quick Pre-Written Templates (Click to Auto-Fill)
+              </span>
+              <span className="text-[9px] text-gray-400 font-medium">
+                {allTemplates.length} Available
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              {allTemplates.map((tpl) => (
+                <div
+                  key={tpl.id}
+                  onClick={() => handleApplyTemplate(tpl)}
+                  className="group inline-flex items-center gap-1.5 bg-white hover:bg-primary/5 border border-gray-200 hover:border-primary/30 px-3 py-1.5 rounded-xl text-xs font-bold text-dark hover:text-primary cursor-pointer shadow-sm transition-all"
+                  title={tpl.description}
+                >
+                  <span>{tpl.name}</span>
+                  {!tpl.isBuiltIn && (
+                    <Trash2
+                      size={12}
+                      onClick={(e) => handleDeleteTemplate(tpl.id, e)}
+                      className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {templateSuccessAlert && (
+            <div className="p-4 bg-amber-50 border border-amber-100 text-amber-700 rounded-2xl text-xs font-bold flex items-center gap-2">
+              <Bookmark size={16} />
+              <span>Notification message saved to Pre-written Templates library!</span>
+            </div>
+          )}
 
           {sentSuccessAlert && (
             <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl text-xs font-bold flex items-center gap-2">
@@ -394,6 +560,14 @@ export default function NotificationCenterTab() {
             >
               <Save size={13} />
               Save Draft
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAsTemplate}
+              className="border border-amber-200 text-amber-800 bg-amber-50/70 hover:bg-amber-100 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Bookmark size={13} />
+              Save as Pre-Written Template
             </button>
             <button
               type="button"

@@ -11,12 +11,13 @@ import {
   requestNotificationPermission,
   triggerBrowserNotification
 } from "../../services/notificationService";
+import { getCartoonAvatar, handleAvatarError } from "../../utils/avatar";
 
 const navLinks = [
   { name: "Home", path: "/" },
   { name: "Services", path: "/services" },
   { name: "Pricing", path: "/pricing" },
-  { name: "Gallery", path: "#gallery" },
+  { name: "Gallery", path: "/gallery" },
   { name: "Job Opportunity", path: "/jobs" },
   { name: "About Us", path: "/about" },
   { name: "Contact", path: "/contact" },
@@ -144,7 +145,8 @@ export default function Navbar() {
             <Link to="/account" className="flex items-center gap-2 group shrink-0">
               <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20 group-hover:border-[#F4B400] transition-colors">
                 <img
-                  src={user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"}
+                  src={user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
+                  onError={(e) => handleAvatarError(e, user.email || user.displayName || user.uid)}
                   alt="My Profile avatar"
                   className="w-full h-full object-cover"
                 />
@@ -227,7 +229,8 @@ export default function Navbar() {
                   >
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20">
                       <img
-                        src={user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"}
+                        src={user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
+                        onError={(e) => handleAvatarError(e, user.email || user.displayName || user.uid)}
                         alt="Avatar"
                         className="w-full h-full object-cover"
                       />

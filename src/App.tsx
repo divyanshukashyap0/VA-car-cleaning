@@ -15,6 +15,7 @@ import About from "./pages/About";
 import Jobs from "./pages/Jobs";
 import Book from "./pages/Book";
 import Contact from "./pages/Contact";
+import Gallery from "./pages/Gallery";
 import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -25,6 +26,7 @@ import EmployeeDashboard from "./pages/crew/EmployeeDashboard";
 import NotificationCenter from "./pages/NotificationCenter";
 
 import ExteriorWash from "./pages/services/ExteriorWash";
+import ServiceDetailPage from "./pages/ServiceDetail";
 import InteriorCleaning from "./pages/services/InteriorCleaning";
 import FoamWash from "./pages/services/FoamWash";
 import WaxPolish from "./pages/services/WaxPolish";
@@ -45,12 +47,14 @@ function AnimatedRoutes() {
           <Route index element={<Home />} />
           <Route path="services" element={<Services />} />
           <Route path="pricing" element={<Pricing />} />
+          <Route path="gallery" element={<Gallery />} />
           <Route path="about" element={<About />} />
           <Route path="jobs" element={<Jobs />} />
           <Route path="book" element={<Book />} />
           <Route path="contact" element={<Contact />} />
           
           {/* Specific Service Subpages */}
+          <Route path="services/:serviceId" element={<ServiceDetailPage />} />
           <Route path="services/exterior-wash" element={<ExteriorWash />} />
           <Route path="services/interior-cleaning" element={<InteriorCleaning />} />
           <Route path="services/foam-wash" element={<FoamWash />} />

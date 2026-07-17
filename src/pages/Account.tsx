@@ -24,9 +24,13 @@ import {
   Key,
   Globe,
   Sliders,
-  DollarSign
+  Star
 } from "lucide-react";
-import { logAuditAction, getBookingsByCustomer, dbBooking } from "../services/dbService";
+import { logAuditAction, getBookingsByCustomer, dbBooking, getAllReviews, dbReview } from "../services/dbService";
+import { getCartoonAvatar, handleAvatarError } from "../utils/avatar";
+import ReviewModal from "../components/modals/ReviewModal";
+import EmployeeDashboard from "./crew/EmployeeDashboard";
+
 
 export default function Account() {
   const {
@@ -44,8 +48,18 @@ export default function Account() {
 
   const navigate = useNavigate();
 
-  // Tab Manager: "dashboard" | "profile" | "vehicles" | "addresses" | "bookings" | "security"
-  const [activeSection, setActiveSection] = useState<"dashboard" | "profile" | "vehicles" | "addresses" | "bookings" | "security">("dashboard");
+  // Tab Manager: "crew_dashboard" | "profile" | "vehicles" | "addresses" | "bookings" | "security"
+  const isCrewUser = profile?.role === "staff" || profile?.role === "crew";
+  const [activeSection, setActiveSection] = useState<"crew_dashboard" | "profile" | "vehicles" | "addresses" | "bookings" | "security">(
+    isCrewUser ? "crew_dashboard" : "profile"
+  );
+
+  useEffect(() => {
+    if (profile?.role === "staff" || profile?.role === "crew") {
+      setActiveSection("crew_dashboard");
+    }
+  }, [profile?.role]);
+
 
   // Local Form state managers
   const [editName, setEditName] = useState(user?.displayName || "");
@@ -67,18 +81,29 @@ export default function Account() {
 
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  // Real bookings state
+  // Real bookings & review state
   const [bookings, setBookings] = useState<dbBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingsFetched, setBookingsFetched] = useState(false);
   const [viewingBookingDetails, setViewingBookingDetails] = useState<Partial<dbBooking> | null>(null);
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState<Partial<dbBooking> | null>(null);
+  const [reviewsList, setReviewsList] = useState<dbReview[]>([]);
+
+  const fetchReviews = useCallback(async () => {
+    if (!user) return;
+    try {
+      const allRev = await getAllReviews();
+      setReviewsList(allRev);
+    } catch (err) {
+      console.error("Failed to fetch reviews:", err);
+    }
+  }, [user]);
 
   const fetchBookings = useCallback(async () => {
     if (!user) return;
     setBookingsLoading(true);
     try {
       const data = await getBookingsByCustomer(user.uid);
-      // Sort by most recent first
       data.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
       setBookings(data);
       setBookingsFetched(true);
@@ -89,12 +114,14 @@ export default function Account() {
     }
   }, [user]);
 
-  // Fetch bookings on mount and when switching to bookings/dashboard tab
+  // Fetch bookings and reviews on mount and when switching to bookings tab
   useEffect(() => {
-    if (user && (activeSection === "bookings" || activeSection === "dashboard") && !bookingsFetched) {
+    if (user && activeSection === "bookings" && !bookingsFetched) {
       fetchBookings();
+      fetchReviews();
     }
-  }, [user, activeSection, bookingsFetched, fetchBookings]);
+  }, [user, activeSection, bookingsFetched, fetchBookings, fetchReviews]);
+
 
   if (loading) {
     return (
@@ -208,7 +235,8 @@ export default function Account() {
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/20 shrink-0">
               <img
-                src={user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"}
+                src={user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
+                onError={(e) => handleAvatarError(e, user.email || user.displayName || user.uid)}
                 alt="User Profile"
                 className="w-full h-full object-cover"
               />
@@ -229,15 +257,19 @@ export default function Account() {
           </div>
 
           <nav className="flex flex-col gap-1 text-xs font-bold text-gray-500 border-t border-gray-100 pt-4">
-            <button
-              onClick={() => setActiveSection("dashboard")}
-              className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all cursor-pointer ${
-                activeSection === "dashboard" ? "bg-primary text-white shadow shadow-primary/20" : "hover:bg-gray-50 text-gray-500"
-              }`}
-            >
-              <Activity size={16} />
-              Overview Dashboard
-            </button>
+            {(profile?.role === "staff" || profile?.role === "crew") && (
+              <button
+                onClick={() => setActiveSection("crew_dashboard")}
+                className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all cursor-pointer ${
+                  activeSection === "crew_dashboard"
+                    ? "bg-emerald-600 text-white shadow shadow-emerald-600/20 font-black"
+                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-extrabold"
+                }`}
+              >
+                <Briefcase size={16} />
+                🛠️ Crew Control Panel
+              </button>
+            )}
             <button
               onClick={() => setActiveSection("profile")}
               className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all cursor-pointer ${
@@ -316,51 +348,9 @@ export default function Account() {
 
         {/* RIGHT main content panel */}
         <div className="flex-1 space-y-6">
-          
-          {/* DASHBOARD TAB */}
-          {activeSection === "dashboard" && (
-            <div className="space-y-6">
-              {/* Dashboard metrics */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-5 bg-white border border-gray-100 rounded-3xl shadow-sm">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">My Cars/Bikes</span>
-                  <div className="text-2xl font-black text-dark leading-none">{profile?.vehicles?.length || 0}</div>
-                </div>
-                <div className="p-5 bg-white border border-gray-100 rounded-3xl shadow-sm">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Addresses</span>
-                  <div className="text-2xl font-black text-dark leading-none">{profile?.addresses?.length || 0}</div>
-                </div>
-                <div className="p-5 bg-white border border-gray-100 rounded-3xl shadow-sm">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Total Bookings</span>
-                  <div className="text-2xl font-black text-dark leading-none">{bookingsLoading ? "…" : allBookings.length}</div>
-                </div>
-                <div className="p-5 bg-white border border-gray-100 rounded-3xl shadow-sm">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Loyalty Points</span>
-                  <div className="text-2xl font-black text-emerald-500 leading-none flex items-center gap-1">
-                    <Gift size={20} />
-                    <span>320</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Graphical info block */}
-              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
-                <h3 className="font-heading font-extrabold text-dark text-base flex items-center gap-2">
-                  <Activity size={18} className="text-primary" />
-                  Recent Detailing Activity
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl text-xs font-semibold text-gray-600">
-                    <span className="text-dark font-bold">First Simulated Login</span>
-                    <span className="text-gray-400">Just now</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl text-xs font-semibold text-gray-600">
-                    <span className="text-dark font-bold">Profile synchronized with LocalStorage DB</span>
-                    <span className="text-gray-400">Just now</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* CREW CONTROL PANEL TAB (EMBEDDED DIRECTLY IN ACCOUNT PAGE) */}
+          {activeSection === "crew_dashboard" && (
+            <EmployeeDashboard embedded={true} />
           )}
 
           {/* EDIT PROFILE TAB */}
@@ -732,6 +722,57 @@ export default function Account() {
                           </div>
                         )}
 
+                        {/* Flipkart Style Review Section for Completed Bookings */}
+                        {appt.bookingStatus === "Completed" && (() => {
+                          const existingReview = reviewsList.find((r) => r.bookingId === appt.id || (r.customerId === user.uid && r.serviceName === appt.serviceName));
+
+                          if (existingReview) {
+                            return (
+                              <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-3 space-y-2 mt-1">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-1 text-[#F4B400]">
+                                    {Array.from({ length: existingReview.stars || 5 }).map((_, i) => (
+                                      <Star key={i} size={14} className="fill-[#F4B400]" />
+                                    ))}
+                                    <span className="text-[10px] font-extrabold text-dark ml-1">Verified Customer Rating</span>
+                                  </div>
+                                  <span className="text-[9px] text-gray-400 font-bold uppercase">Reviewed</span>
+                                </div>
+                                <p className="text-xs text-dark font-medium italic">"{existingReview.review}"</p>
+                                
+                                {/* Uploaded Photos & Videos Preview */}
+                                {(existingReview.images?.length || existingReview.videos?.length) ? (
+                                  <div className="flex gap-2 pt-1 overflow-x-auto">
+                                    {existingReview.images?.map((imgUrl, i) => (
+                                      <img key={i} src={imgUrl} alt="Review attachment" className="w-12 h-12 rounded-lg object-cover border border-amber-200 shrink-0" />
+                                    ))}
+                                    {existingReview.videos?.map((vidUrl, i) => (
+                                      <video key={i} src={vidUrl} className="w-12 h-12 rounded-lg object-cover border border-amber-200 shrink-0 bg-black" />
+                                    ))}
+                                  </div>
+                                ) : null}
+
+                                {existingReview.adminReply && (
+                                  <div className="bg-white p-2.5 rounded-lg text-[10px] text-gray-600 border border-amber-200/50 space-y-0.5 mt-1">
+                                    <span className="font-extrabold text-primary block">💬 Admin Response:</span>
+                                    <p>{existingReview.adminReply}</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <button
+                              onClick={() => setSelectedBookingForReview(appt)}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white rounded-xl text-xs font-extrabold uppercase tracking-wider shadow cursor-pointer transition-all mt-1"
+                            >
+                              <Star size={14} className="fill-white" />
+                              Leave Flipkart-Style Review (Photos & Video)
+                            </button>
+                          );
+                        })()}
+
                         <button
                           onClick={() => setViewingBookingDetails(appt)}
                           className="w-full text-center py-2 bg-gray-50 hover:bg-primary hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors text-gray-500 cursor-pointer mt-1"
@@ -933,6 +974,17 @@ export default function Account() {
             </button>
           </motion.div>
         </div>
+      )}
+      {selectedBookingForReview && (
+        <ReviewModal
+          isOpen={true}
+          booking={selectedBookingForReview}
+          onClose={() => setSelectedBookingForReview(null)}
+          onReviewSubmitted={() => {
+            fetchReviews();
+            fetchBookings();
+          }}
+        />
       )}
     </div>
   );

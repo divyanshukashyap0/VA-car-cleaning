@@ -64,13 +64,13 @@ export default function ServicesPage() {
   return (
     <div className="pt-24 min-h-screen bg-light">
       {/* Hero Header */}
-      <div className="bg-dark text-white py-20 relative overflow-hidden">
+      <div className="bg-dark text-white py-12 md:py-14 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/10" />
         <div className="container mx-auto px-4 md:px-6 relative z-10 text-center">
           <motion.span
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-secondary font-semibold tracking-wider uppercase text-sm mb-4 block"
+            className="text-secondary font-semibold tracking-wider uppercase text-[11px] mb-2 block"
           >
             Our Offerings
           </motion.span>
@@ -78,7 +78,7 @@ export default function ServicesPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-6xl font-heading font-extrabold mb-6"
+            className="text-3xl md:text-5xl font-heading font-extrabold max-w-3xl mx-auto leading-[1.1] tracking-tight mb-3"
           >
             Professional Detailing Services
           </motion.h1>
@@ -86,7 +86,7 @@ export default function ServicesPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.8 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto"
+            className="text-gray-300 text-sm md:text-base max-w-xl mx-auto leading-relaxed"
           >
             Explore our comprehensive list of specialized car cleaning, restoration, and long-term protection services.
           </motion.p>
@@ -94,7 +94,7 @@ export default function ServicesPage() {
       </div>
 
       {/* Services Grid */}
-      <div className="container mx-auto px-4 md:px-6 py-20">
+      <div className="container mx-auto px-4 md:px-6 py-10 md:py-14">
         <div className="space-y-16">
           {detailedServices.map((service, index) => (
             <motion.div
@@ -158,9 +158,16 @@ export default function ServicesPage() {
                       {service.duration}
                     </span>
                   </div>
-                  <Link to="/book" className="w-full sm:w-auto">
-                    <Button className="w-full sm:w-auto">Book This Service</Button>
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    <Link to={`/services/${service.title.toLowerCase().replace(/\s+/g, "-")}`} className="w-full sm:w-auto">
+                      <button className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-dark font-bold px-5 py-3 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border border-gray-200">
+                        Details & Terms →
+                      </button>
+                    </Link>
+                    <Link to="/book" className="w-full sm:w-auto">
+                      <Button className="w-full sm:w-auto">Book This Service</Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </motion.div>

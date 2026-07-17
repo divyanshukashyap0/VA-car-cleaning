@@ -88,7 +88,7 @@ export default function Services() {
 
                   {/* Service description details */}
                   <div className="p-6 pt-8 flex-1 flex flex-col justify-between text-dark">
-                    <div className="space-y-2 mb-6">
+                    <div className="space-y-2 mb-4 text-left">
                       <h3 className="text-lg font-heading font-extrabold tracking-tight group-hover:text-primary transition-colors">
                         {service.name}
                       </h3>
@@ -97,13 +97,22 @@ export default function Services() {
                       </p>
                     </div>
 
-                    <div>
-                      <span className="block text-[15px] font-heading font-black text-dark">
-                        ₹{service.price}
-                      </span>
-                      <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
-                        Starting From
-                      </span>
+                    <div className="flex justify-between items-end pt-3 border-t border-gray-100">
+                      <div className="text-left">
+                        <span className="block text-[15px] font-heading font-black text-dark">
+                          ₹{service.price}
+                        </span>
+                        <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                          Starting From
+                        </span>
+                      </div>
+
+                      <Link
+                        to={`/services/${service.id}`}
+                        className="text-xs font-bold text-primary hover:text-dark flex items-center gap-1 transition-colors bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/10"
+                      >
+                        Details & Terms →
+                      </Link>
                     </div>
                   </div>
 
