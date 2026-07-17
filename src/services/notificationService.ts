@@ -26,39 +26,43 @@ const getOrCreateDeviceId = () => {
 };
 
 // HTML5 & Service Worker Push Notification Dispatcher for all granted devices
-export const triggerBrowserNotification = (title: string, body: string, iconUrl?: string, deepLink?: string) => {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "granted") {
-    const icon = iconUrl || "/va logo-DCJxvIQ4.png";
-    
-    // Attempt Service Worker Notification first for background capability
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.ready.then((registration) => {
-        registration.showNotification(title, {
-          body,
-          icon,
-          badge: icon,
-          data: { url: deepLink || "/notifications" },
-          vibrate: [100, 50, 100]
-        } as any);
-      }).catch(() => {
-        const notification = new Notification(title, { body, icon, badge: icon });
-        if (deepLink) {
-          notification.onclick = (e) => {
-            e.preventDefault();
-            window.open(deepLink, "_blank");
-          };
-        }
-      });
-    } else {
-      const notification = new Notification(title, { body, icon, badge: icon });
-      if (deepLink) {
-        notification.onclick = (e) => {
-          e.preventDefault();
-          window.open(deepLink, "_blank");
-        };
+export const triggerBrowserNotification = async (title: string, body: string, iconUrl?: string, deepLink?: string) => {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  const icon = iconUrl || "/va logo-DCJxvIQ4.png";
+  const options = {
+    body,
+    icon,
+    badge: icon,
+    data: { url: deepLink || "/notifications" },
+    vibrate: [100, 50, 100]
+  };
+
+  // 1. Primary: Use ServiceWorkerRegistration.showNotification (Works on HTTPS, Mobile Chrome & Desktop)
+  if ("serviceWorker" in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration && registration.showNotification) {
+        await registration.showNotification(title, options as any);
+        return;
       }
+    } catch (swErr) {
+      console.warn("SW notification dispatch fallback:", swErr);
     }
+  }
+
+  // 2. Fallback: Standard Window Notification constructor for desktop
+  try {
+    const notification = new Notification(title, { body, icon, badge: icon });
+    if (deepLink) {
+      notification.onclick = (e) => {
+        e.preventDefault();
+        window.open(deepLink, "_blank");
+      };
+    }
+  } catch (nErr) {
+    console.warn("Window Notification fallback notice:", nErr);
   }
 };
 
@@ -131,9 +135,10 @@ export const requestNotificationPermission = async (userId: string): Promise<str
         // local fallback
       }
 
-      // Register Service Worker for background push
+      // Register Service Worker for background push using base URL
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
+        const swUrl = `${import.meta.env.BASE_URL || '/'}sw.js`.replace(/\/+/g, '/');
+        navigator.serviceWorker.register(swUrl).catch(() => {});
       }
 
       console.log("Multi-Device Notification Permission granted for device:", deviceId);
