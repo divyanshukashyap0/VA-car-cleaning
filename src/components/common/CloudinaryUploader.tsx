@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Upload, Image as ImageIcon, Check, Loader2, Link as LinkIcon, ExternalLink, Settings } from "lucide-react";
+import imageCompression from "browser-image-compression";
 
 interface CloudinaryUploaderProps {
   value: string;
@@ -44,6 +45,18 @@ export default function CloudinaryUploader({
     setUploading(true);
     setError(null);
 
+    let fileToUpload = file;
+    try {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      fileToUpload = await imageCompression(file, options);
+    } catch (compressionError) {
+      console.warn("Image compression failed, using original file:", compressionError);
+    }
+
     const convertToDataUrl = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -56,13 +69,13 @@ export default function CloudinaryUploader({
         setError("Failed to read image file.");
         setUploading(false);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileToUpload);
     };
 
     try {
       // Try Cloudinary Unsigned Upload
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToUpload);
       formData.append("upload_preset", customUploadPreset);
 
       const res = await fetch(`https://api.cloudinary.com/v1_1/${customCloudName}/image/upload`, {

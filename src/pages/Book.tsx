@@ -33,7 +33,7 @@ interface BookingInputs {
 
 export default function BookPage() {
   const [searchParams] = useSearchParams();
-  const { user, profile, addAppointment } = useAuth();
+  const { user, profile, addAppointment, addAddress } = useAuth();
   const [step, setStep] = useState(1);
   const [isBooked, setIsBooked] = useState(false);
   const [bookedDetails, setBookedDetails] = useState<any>(null);
@@ -54,12 +54,13 @@ export default function BookPage() {
     }
   }, [user]);
 
-  // Read service package query parameter (default to 'foam')
-  const queryService = searchParams.get("service") || "foam";
+  // Read query parameters
+  const queryService = searchParams.get("service");
+  const isRevisit = searchParams.get("revisit") === "true";
 
   const { register, handleSubmit, formState: { errors }, watch, trigger, setValue } = useForm<BookingInputs>({
     defaultValues: {
-      serviceType: queryService,
+      serviceType: queryService || "foam",
       bookingTime: "Morning (8:00 AM - 12:00 PM)",
       vehicleSelect: "",
       bookingDate: new Date().toISOString().split("T")[0]
@@ -89,7 +90,7 @@ export default function BookPage() {
 
   // Lookup service details from dynamic services list
   const matchedService = services.find(s => s.id === selectedServiceKey);
-  const rawServicePrice = matchedService ? matchedService.price : 1999;
+  const rawServicePrice = isRevisit ? 0 : (matchedService ? matchedService.price : 1999);
 
   // Loyalty calculations
   const pointValue = loyaltySettings?.pointRedemptionValue || 1;
@@ -107,8 +108,8 @@ export default function BookPage() {
   const estimatedEarnedPoints = Math.floor((finalPayablePrice / 100) * (loyaltySettings?.pointsPer100Spent || 10));
 
   const serviceInfo = {
-    name: matchedService ? matchedService.name : "Premium Detailing",
-    price: `₹${finalPayablePrice}`,
+    name: isRevisit ? `Revisit Request (${matchedService?.name || "Service"})` : (matchedService ? matchedService.name : "Premium Detailing"),
+    price: isRevisit ? "Included in Plan" : `₹${finalPayablePrice}`,
     rawPrice: rawServicePrice,
     discount: loyaltyDiscount,
     finalPrice: finalPayablePrice
@@ -175,6 +176,14 @@ export default function BookPage() {
       }
       if (estimatedEarnedPoints > 0) {
         await grantOrAdjustLoyaltyPoints(user.uid, estimatedEarnedPoints, "earned", `Earned ${estimatedEarnedPoints} pts on ${serviceName}`, newBookingId);
+      }
+
+      // Save address for future use if not already saved
+      if (data.address) {
+        const addressExists = profile?.addresses?.some((addr: string) => addr.trim() === data.address.trim());
+        if (!addressExists && addAddress) {
+          await addAddress(data.address);
+        }
       }
     }
 
@@ -319,17 +328,33 @@ export default function BookPage() {
                         </p>
                       </div>
 
-                      {/* Service Selection dropdown */}
+                      {/* Service Selection */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Select Service Package</label>
-                        <select
-                          {...register("serviceType", { required: "Service is required" })}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 font-semibold text-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all appearance-none cursor-pointer"
-                        >
-                          {services.map(s => (
-                            <option key={s.id} value={s.id}>{s.name} - ₹{s.price}</option>
-                          ))}
-                        </select>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Service Package</label>
+                        {queryService ? (
+                          <div className="relative w-full bg-emerald-50/50 border border-emerald-200/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                            <input type="hidden" {...register("serviceType")} value={queryService} />
+                            <div className="flex flex-col">
+                              <span className="text-dark font-extrabold text-sm">{matchedService ? matchedService.name : "Premium Detailing"}</span>
+                              <span className="text-gray-500 text-xs font-semibold mt-0.5">₹{matchedService ? matchedService.price : 1999}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-600 bg-emerald-100/50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                              <CheckCircle size={14} className="stroke-[2.5]" />
+                              SELECTED
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <select
+                              {...register("serviceType", { required: "Service is required" })}
+                              className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 font-semibold text-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all appearance-none cursor-pointer"
+                            >
+                              {services.map(s => (
+                                <option key={s.id} value={s.id}>{s.name} - ₹{s.price}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -361,23 +386,29 @@ export default function BookPage() {
                       {/* Service Address */}
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Service Address</label>
-                        {user && profile?.addresses && profile.addresses.length > 0 ? (
-                          <select
-                            {...register("address", { required: "Address is required" })}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 font-semibold text-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all appearance-none cursor-pointer"
-                          >
-                            {profile.addresses.map((addr, idx) => (
-                              <option key={idx} value={addr}>{addr}</option>
-                            ))}
-                          </select>
-                        ) : (
+                        <div className="space-y-2">
+                          {user && profile?.addresses && profile.addresses.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {profile.addresses.map((addr, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setValue("address", addr)}
+                                  className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold px-2.5 py-1.5 rounded-lg text-left truncate max-w-[200px] cursor-pointer hover:bg-primary/20"
+                                  title={addr}
+                                >
+                                  {addr}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                           <textarea
                             rows={3}
                             placeholder="Provide details where vehicle is parked..."
                             {...register("address", { required: "Address is required" })}
                             className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 font-semibold text-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all resize-none"
                           />
-                        )}
+                        </div>
                         {errors.address && (
                           <p className="text-red-500 text-[10px] font-bold">{errors.address.message}</p>
                         )}
@@ -593,35 +624,49 @@ export default function BookPage() {
                       </div>
 
                       {/* Price Summary Breakdown */}
-                      <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-2 text-xs text-left">
-                        <div className="flex justify-between text-gray-500 font-semibold">
-                          <span>Base Package Fee ({serviceInfo.name}):</span>
-                          <span className="font-bold text-dark">₹{rawServicePrice}</span>
-                        </div>
+                      {!isRevisit ? (
+                        <>
+                          <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-2 text-xs text-left">
+                            <div className="flex justify-between text-gray-500 font-semibold">
+                              <span>Base Package Fee ({serviceInfo.name}):</span>
+                              <span className="font-bold text-dark">₹{rawServicePrice}</span>
+                            </div>
 
-                        {loyaltyDiscount > 0 && (
-                          <div className="flex justify-between text-emerald-600 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">
-                            <span>Loyalty Points Cash Discount:</span>
-                            <span className="font-extrabold">-₹{loyaltyDiscount}</span>
+                            {loyaltyDiscount > 0 && (
+                              <div className="flex justify-between text-emerald-600 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">
+                                <span>Loyalty Points Cash Discount:</span>
+                                <span className="font-extrabold">-₹{loyaltyDiscount}</span>
+                              </div>
+                            )}
+
+                            <div className="flex justify-between text-dark font-extrabold text-sm pt-2 border-t border-gray-200">
+                              <span>Total Payable Amount:</span>
+                              <span className="text-primary text-base font-black">₹{finalPayablePrice}</span>
+                            </div>
                           </div>
-                        )}
 
-                        <div className="flex justify-between text-dark font-extrabold text-sm pt-2 border-t border-gray-200">
-                          <span>Total Payable Amount:</span>
-                          <span className="text-primary text-base font-black">₹{finalPayablePrice}</span>
+                          {/* Pay on Delivery Guarantee Box */}
+                          <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-800 text-xs space-y-1 text-left">
+                            <div className="font-extrabold flex items-center gap-1.5 text-emerald-900">
+                              <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
+                              <span>💵 100% Pay on Delivery — Zero Advance Needed!</span>
+                            </div>
+                            <p className="text-emerald-700 text-[11px] leading-relaxed">
+                              No upfront payment required. Pay via Cash or UPI to your detailing squad technician only after your car wash is finished & inspected to your 100% satisfaction.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="p-4 bg-[#F4B400]/10 border border-[#F4B400]/30 rounded-2xl text-amber-900 text-xs space-y-1 text-left">
+                          <div className="font-extrabold flex items-center gap-1.5">
+                            <Star size={16} className="text-[#F4B400] shrink-0 fill-[#F4B400]" />
+                            <span>Subscription Revisit Request</span>
+                          </div>
+                          <p className="text-amber-800 text-[11px] leading-relaxed font-semibold">
+                            This revisit is completely free and included in your active subscription plan.
+                          </p>
                         </div>
-                      </div>
-
-                      {/* Pay on Delivery Guarantee Box */}
-                      <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-800 text-xs space-y-1 text-left">
-                        <div className="font-extrabold flex items-center gap-1.5 text-emerald-900">
-                          <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
-                          <span>💵 100% Pay on Delivery — Zero Advance Needed!</span>
-                        </div>
-                        <p className="text-emerald-700 text-[11px] leading-relaxed">
-                          No upfront payment required. Pay via Cash or UPI to your detailing squad technician only after your car wash is finished & inspected to your 100% satisfaction.
-                        </p>
-                      </div>
+                      )}
 
                       <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                         <button

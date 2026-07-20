@@ -1268,6 +1268,20 @@ export const updateContactSettings = async (settings: dbContactSettings): Promis
 // 14. Dynamic Custom Services
 export const defaultServices: dbService[] = [
   {
+    id: "subscription-small",
+    name: "Subscription (Small Car)",
+    price: 800,
+    image: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=600",
+    description: "1 month plan for small car. Includes daily cloth wipe and 1 full wash per week."
+  },
+  {
+    id: "subscription-big",
+    name: "Subscription (Big Car)",
+    price: 1500,
+    image: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=600",
+    description: "1 month plan for big car. Includes daily cloth wipe and 1 full wash per week."
+  },
+  {
     id: "exterior",
     name: "Exterior Wash",
     price: 299,
@@ -2010,3 +2024,45 @@ export const getRealtimeCompanyStats = async (): Promise<RealtimeCompanyStats> =
   };
 };
 
+// 21. Active Subscription Helper
+export interface ActiveSubscription extends dbBooking {
+  expiryDate: string;
+  daysRemaining: number;
+}
+
+export const getActiveSubscription = async (userId: string): Promise<ActiveSubscription | null> => {
+  try {
+    const bookings = await getBookingsByCustomer(userId);
+    const subscriptions = bookings.filter(b => 
+      b.serviceId.includes("subscription") && b.bookingStatus === "Completed"
+    );
+    
+    if (subscriptions.length === 0) return null;
+    
+    // Sort by scheduledDate descending to get the latest
+    subscriptions.sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
+    const latest = subscriptions[0];
+    
+    const scheduledDateObj = new Date(latest.scheduledDate);
+    // Active for 30 days from the scheduled date of the first/latest completed service
+    const expiryDateObj = new Date(scheduledDateObj.getTime());
+    expiryDateObj.setDate(expiryDateObj.getDate() + 30);
+    
+    const today = new Date();
+    const msRemaining = expiryDateObj.getTime() - today.getTime();
+    
+    if (msRemaining > 0) {
+      const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24));
+      return {
+        ...latest,
+        expiryDate: expiryDateObj.toISOString().split("T")[0],
+        daysRemaining
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error fetching active subscription:", error);
+    return null;
+  }
+};

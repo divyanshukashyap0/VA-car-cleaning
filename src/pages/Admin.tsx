@@ -3145,17 +3145,13 @@ export default function Admin() {
                 />
               </div>
 
-              {/* Image URL */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Showcase Image URL</label>
-                <input
-                  type="url"
-                  placeholder="Paste Unsplash or host image URL"
-                  value={serviceFormImage}
-                  onChange={(e) => setServiceFormImage(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-dark"
-                />
-              </div>
+              {/* Image URL with Cloudinary Upload */}
+              <CloudinaryUploader
+                label="Showcase Image (Cloudinary / File)"
+                value={serviceFormImage}
+                onChange={setServiceFormImage}
+                placeholder="https://images.unsplash.com/... or upload file"
+              />
 
               {/* Description */}
               <div className="space-y-1">

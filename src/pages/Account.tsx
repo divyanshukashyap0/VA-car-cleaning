@@ -24,7 +24,8 @@ import {
   Key,
   Globe,
   Sliders,
-  Star
+  Star,
+  Crown
 } from "lucide-react";
 import {
   logAuditAction,
@@ -34,7 +35,9 @@ import {
   dbReview,
   getUserLoyaltyPoints,
   getUserLoyaltyHistory,
-  dbLoyaltyTransaction
+  dbLoyaltyTransaction,
+  getActiveSubscription,
+  ActiveSubscription
 } from "../services/dbService";
 import { getCartoonAvatar, handleAvatarError } from "../utils/avatar";
 import ReviewModal from "../components/modals/ReviewModal";
@@ -113,6 +116,7 @@ export default function Account() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   // Real bookings & review state
+  const [activeSub, setActiveSub] = useState<ActiveSubscription | null>(null);
   const [bookings, setBookings] = useState<dbBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingsFetched, setBookingsFetched] = useState(false);
@@ -137,6 +141,10 @@ export default function Account() {
       const data = await getBookingsByCustomer(user.uid);
       data.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
       setBookings(data);
+      
+      const sub = await getActiveSubscription(user.uid);
+      setActiveSub(sub);
+
       setBookingsFetched(true);
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
@@ -289,7 +297,7 @@ export default function Account() {
                 />
               </div>
               <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h4 className="font-heading font-extrabold text-dark tracking-tight text-sm md:text-base">{user.displayName || "Valued Customer"}</h4>
                   <span className={`text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded border ${profile?.role === "admin"
                       ? "bg-amber-50 text-amber-600 border-amber-100"
@@ -299,6 +307,11 @@ export default function Account() {
                     }`}>
                     {profile?.role === "staff" ? "crew" : (profile?.role || "customer")}
                   </span>
+                  {activeSub && (
+                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded border bg-[#F4B400]/20 text-amber-600 border-amber-200" title={`Active until ${activeSub.expiryDate}`}>
+                      <Crown size={10} className="fill-amber-500 text-amber-500" /> Member
+                    </span>
+                  )}
                 </div>
                 <p className="text-gray-400 text-xs">{user.email}</p>
               </div>

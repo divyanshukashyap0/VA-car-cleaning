@@ -26,6 +26,18 @@ export const seoLocations = [
 
 export const seoServices = [
   { 
+    name: "Subscription (Small Car)", 
+    slug: "subscription-small-car", 
+    description: "1 month plan for small car. Includes daily cloth wipe and 1 full wash per week.",
+    price: "800"
+  },
+  { 
+    name: "Subscription (Big Car)", 
+    slug: "subscription-big-car", 
+    description: "1 month plan for big car. Includes daily cloth wipe and 1 full wash per week.",
+    price: "1500"
+  },
+  { 
     name: "Doorstep Car Cleaning", 
     slug: "doorstep-car-cleaning", 
     description: "Premium doorstep car cleaning services at your location. Eco-friendly wash, wax, and interior detailing by professionals.",
@@ -66,12 +78,6 @@ export const seoServices = [
     slug: "foam-car-wash", 
     description: "Thick snow foam car wash that encapsulates dirt and prevents micro-scratches during the wash.",
     price: "499"
-  },
-  { 
-    name: "Monthly Car Cleaning", 
-    slug: "monthly-car-cleaning", 
-    description: "Affordable monthly car wash subscriptions delivered right to your parking spot.",
-    price: "899"
   },
   { 
     name: "Car Sanitization", 

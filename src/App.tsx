@@ -10,7 +10,6 @@ import Layout from "./components/layout/Layout";
 import Home from "./pages/Home";
 import Loader from "./components/ui/Loader";
 import Services from "./pages/Services";
-import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Jobs from "./pages/Jobs";
 import Book from "./pages/Book";
@@ -50,7 +49,6 @@ function AnimatedRoutes() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="services" element={<Services />} />
-          <Route path="pricing" element={<Pricing />} />
           <Route path="gallery" element={<Gallery />} />
           <Route path="about" element={<About />} />
           <Route path="jobs" element={<Jobs />} />

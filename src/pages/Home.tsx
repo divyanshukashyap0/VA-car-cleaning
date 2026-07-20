@@ -1,3 +1,7 @@
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { getActiveSubscription, ActiveSubscription } from "../services/dbService";
+
 import Hero from "../components/sections/Hero";
 import Services from "../components/sections/Services";
 import WhyChooseUs from "../components/sections/WhyChooseUs";
@@ -6,19 +10,37 @@ import JobOpportunity from "../components/sections/JobOpportunity";
 import BeforeAfter from "../components/sections/BeforeAfter";
 import Testimonials from "../components/sections/Testimonials";
 import FAQ from "../components/sections/FAQ";
+import SubscriberDashboard from "../components/sections/SubscriberDashboard";
 
 import SEO from "../components/seo/SEO";
 import SeoTextSection from "../components/seo/SeoTextSection";
 
 export default function Home() {
+  const { user } = useAuth();
+  const [activeSub, setActiveSub] = useState<ActiveSubscription | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      getActiveSubscription(user.uid).then((sub) => {
+        setActiveSub(sub);
+      });
+    } else {
+      setActiveSub(null);
+    }
+  }, [user]);
+
   return (
     <div className="w-full bg-[#070C16]">
       <SEO 
         title="VaCar - Best Doorstep Car Cleaning & Detailing in Kanpur"
         description="VaCar Cleaning Service offers premium foam wash, ceramic coating, and interior dry cleaning at your doorstep in Kanpur. Top-rated professional detailing."
       />
-      {/* 1. Dark Hero Section */}
-      <Hero />
+      
+      {activeSub ? (
+        <SubscriberDashboard subscription={activeSub} />
+      ) : (
+        <Hero />
+      )}
       
       {/* 2. Premium Services Cards */}
       <Services />
@@ -27,7 +49,7 @@ export default function Home() {
       <WhyChooseUs />
 
       {/* 4. Inline Doorstep Booking Form */}
-      <BookingSection />
+      {!activeSub && <BookingSection />}
       
       {/* 5. Achievements & Job checklist splits */}
       <JobOpportunity />
