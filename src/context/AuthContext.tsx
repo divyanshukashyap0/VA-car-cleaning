@@ -139,26 +139,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Monitor auth changes
   useEffect(() => {
-    if (isFirebaseConfigured) {
-      getRedirectResult(auth)
-        .then(async (credential) => {
-          if (credential?.user) {
-            try {
-              const sessionDetails = {
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent,
-                platform: navigator.platform,
-                language: navigator.language
-              };
-              await logAuditAction(`User ${credential.user.uid} signed in from ${sessionDetails.platform} (Redirect)`, null, sessionDetails);
-            } catch (err) {
-              console.error("Failed to log auth session after redirect:", err);
+    if (isFirebaseConfigured && auth && typeof auth.onAuthStateChanged === "function") {
+      try {
+        getRedirectResult(auth)
+          .then(async (credential) => {
+            if (credential?.user) {
+              try {
+                const sessionDetails = {
+                  timestamp: new Date().toISOString(),
+                  userAgent: navigator.userAgent,
+                  platform: navigator.platform,
+                  language: navigator.language
+                };
+                await logAuditAction(`User ${credential.user.uid} signed in from ${sessionDetails.platform} (Redirect)`, null, sessionDetails);
+              } catch (err) {
+                console.error("Failed to log auth session after redirect:", err);
+              }
             }
-          }
-        })
-        .catch((err) => {
-          console.error("Error handling redirect sign-in result:", err);
-        });
+          })
+          .catch((err) => {
+            if (err?.code !== 'auth/popup-closed-by-user' && !err?.message?.includes('INTERNAL ASSERTION FAILED')) {
+              console.warn("Auth redirect state:", err);
+            }
+          });
+      } catch (err) {
+        // Safe catch for internal promise initialization edge cases
+      }
     }
 
     if (!isFirebaseConfigured && !localStorage.getItem("sim_registered_users")) {
