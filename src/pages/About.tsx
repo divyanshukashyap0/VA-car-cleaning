@@ -19,10 +19,10 @@ export default function AboutPage() {
   }, []);
 
   const stats = [
-    { number: realtimeStats ? realtimeStats.carsCleaned : (settings.stat1Number || "1000+"), label: settings.stat1Label || "Cars Cleaned" },
-    { number: realtimeStats ? realtimeStats.satisfaction : (settings.stat2Number || "100%"), label: settings.stat2Label || "Satisfaction Rate" },
-    { number: realtimeStats ? `${realtimeStats.topRating}★` : (settings.stat3Number || "4.9★"), label: settings.stat3Label || "Customer Rating" },
-    { number: realtimeStats ? realtimeStats.teamMembers : (settings.stat4Number || "50+"), label: settings.stat4Label || "Team Members" }
+    { number: realtimeStats ? realtimeStats.carsCleaned : "0", label: settings.stat1Label || "Cars Cleaned" },
+    { number: realtimeStats ? realtimeStats.satisfaction : "0%", label: settings.stat2Label || "Satisfaction Rate" },
+    { number: realtimeStats ? `${realtimeStats.topRating}★` : "0.0★", label: settings.stat3Label || "Customer Rating" },
+    { number: realtimeStats ? realtimeStats.teamMembers : "0", label: settings.stat4Label || "Team Members" }
   ];
 
   const values = [

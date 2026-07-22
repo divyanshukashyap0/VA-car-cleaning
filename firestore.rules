@@ -44,12 +44,7 @@ service cloud.firestore {
     // Bookings Collection
     match /bookings/{bookingId} {
       allow create: if isAuthenticated() && request.resource.data.keys().hasAll(['customerId', 'serviceId', 'price']);
-      allow read: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.customerId == request.auth.uid ||
-        resource.data.assignedEmployee == request.auth.uid ||
-        resource.data.bookingStatus == 'Pending'
-      );
+      allow read: if true;
       allow update: if isAuthenticated() && (
         isAdmin() ||
         (resource.data.bookingStatus == 'Pending' && request.resource.data.assignedEmployee == request.auth.uid) ||
@@ -81,7 +76,7 @@ service cloud.firestore {
 
     // Employees / Crew Directory Collection
     match /employees/{employeeId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if isAdmin() || (isOwner(employeeId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['availability', 'attendance', 'updatedAt']));
     }
 

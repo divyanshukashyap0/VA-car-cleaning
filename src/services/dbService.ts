@@ -1973,15 +1973,13 @@ export const getRealtimeCompanyStats = async (): Promise<RealtimeCompanyStats> =
   let satisfactionRate = 0;
   let activeCrewCount = 0;
 
-  // 1. Fetch real-time completed bookings count from order history
+  // 1. Fetch real-time completed bookings count from order history in Firestore
   try {
     const bookings = await getAllBookings();
     totalBookingsCount = bookings.length;
     completedCount = bookings.filter((b) => b.bookingStatus === "Completed").length;
   } catch (e) {
-    // Fallback if user doesn't have admin permissions to read all bookings
-    totalBookingsCount = 6800;
-    completedCount = 6450;
+    console.warn("Realtime stats bookings fetch error:", e);
   }
 
   // 2. Fetch real-time customer reviews and calculate average top rating & satisfaction
@@ -1990,34 +1988,28 @@ export const getRealtimeCompanyStats = async (): Promise<RealtimeCompanyStats> =
     if (reviews && reviews.length > 0) {
       reviewsCount = reviews.length;
       totalStars = reviews.reduce((sum, r) => sum + (r.stars || 5), 0);
-      const highRatingsCount = reviews.filter((r) => r.stars >= 4).length;
+      const highRatingsCount = reviews.filter((r) => (r.stars || 5) >= 4).length;
       satisfactionRate = Math.round((highRatingsCount / reviewsCount) * 100);
     }
   } catch (e) {
-    // Fallback if permission denied
-    reviewsCount = 420;
-    totalStars = 420 * 4.9;
-    satisfactionRate = 98;
+    console.warn("Realtime stats reviews fetch error:", e);
   }
 
-  // 3. Fetch active team members / detailers count
+  // 3. Fetch active team members / detailers count from Firestore
   try {
     const employees = await getAllEmployees();
-    activeCrewCount = employees.length;
+    activeCrewCount = employees.filter((emp) => !emp.isDeleted).length;
   } catch (e) {
-    console.warn("Realtime stats crew count fetch fallback:", e);
+    console.warn("Realtime stats crew count fetch error:", e);
   }
 
-  // Base company statistics + dynamic order history counts
-  const carsCleanedTotal = completedCount;
   const computedRating = reviewsCount > 0 ? (totalStars / reviewsCount).toFixed(1) : "0.0";
-  const teamMembersTotal = activeCrewCount;
 
   return {
-    carsCleaned: `${carsCleanedTotal}`,
+    carsCleaned: `${completedCount}`,
     topRating: computedRating,
     satisfaction: `${satisfactionRate}%`,
-    teamMembers: `${teamMembersTotal}`,
+    teamMembers: `${activeCrewCount}`,
     totalBookingsCount,
     completedBookingsCount: completedCount,
     averageRating: reviewsCount > 0 ? totalStars / reviewsCount : 0,
