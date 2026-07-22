@@ -5,40 +5,20 @@ export interface PriceConfig {
 }
 
 const defaultPrices: Record<string, PriceConfig> = {
-  exteriorWash: {
+  "subscription-small": {
+    price: 800,
+    label: "800",
+    formatted: "₹800"
+  },
+  "subscription-big": {
+    price: 1500,
+    label: "1500",
+    formatted: "₹1500"
+  },
+  "one-time-full": {
     price: 299,
     label: "299",
     formatted: "₹299"
-  },
-  interiorCleaning: {
-    price: 599,
-    label: "599",
-    formatted: "₹599"
-  },
-  foamWash: {
-    price: 499,
-    label: "499",
-    formatted: "₹499"
-  },
-  waxPolish: {
-    price: 799,
-    label: "799",
-    formatted: "₹799"
-  },
-  dashboardCleaning: {
-    price: 199,
-    label: "199",
-    formatted: "₹199"
-  },
-  tyreDressing: {
-    price: 199,
-    label: "199",
-    formatted: "₹199"
-  },
-  premiumDetailing: {
-    price: 1999,
-    label: "1999",
-    formatted: "₹1999"
   }
 };
 

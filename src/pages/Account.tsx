@@ -43,7 +43,7 @@ import { getCartoonAvatar, handleAvatarError } from "../utils/avatar";
 import ReviewModal from "../components/modals/ReviewModal";
 import EmployeeDashboard from "./crew/EmployeeDashboard";
 import { GoogleMapEmbed } from "../components/location/LocationPickerMap";
-
+import CloudinaryUploader from "../components/common/CloudinaryUploader";
 
 export default function Account() {
   const {
@@ -97,6 +97,7 @@ export default function Account() {
 
   // Local Form state managers
   const [editName, setEditName] = useState(user?.displayName || "");
+  const [editPhoto, setEditPhoto] = useState(profile?.photo || user?.photoURL || "");
   const [editPhone, setEditPhone] = useState(profile?.contactNumber || "");
   const [editGender, setEditGender] = useState(profile?.gender || "Male");
   const [editDob, setEditDob] = useState(profile?.dob || "");
@@ -223,6 +224,7 @@ export default function Account() {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateProfileDetails({
+      photo: editPhoto,
       contactNumber: editPhone,
       gender: editGender,
       dob: editDob,
@@ -290,7 +292,7 @@ export default function Account() {
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 shrink-0 shadow-xs">
                 <img
-                  src={user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
+                  src={profile?.photo || user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
                   onError={(e) => handleAvatarError(e, user.email || user.displayName || user.uid)}
                   alt="User Profile"
                   className="w-full h-full object-cover"
@@ -446,6 +448,23 @@ export default function Account() {
           {activeSection === "profile" && (
             <form onSubmit={handleProfileSubmit} className="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
               <h3 className="font-heading font-extrabold text-dark text-lg">Personal Profile Settings</h3>
+
+              <div className="flex flex-col items-center sm:items-start gap-4 p-4 border border-gray-100 rounded-2xl bg-gray-50/50">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Profile Photo</label>
+                <div className="w-full max-w-sm">
+                  <CloudinaryUploader 
+                    value={editPhoto}
+                    onChange={(url) => setEditPhoto(url)} 
+                    label="Upload New Profile Picture" 
+                  />
+                  {editPhoto && (
+                    <div className="mt-3 flex items-center gap-3">
+                      <img src={editPhoto} alt="Profile" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" />
+                      <span className="text-xs text-gray-500 font-medium">Photo selected</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {profileSaveSuccess && (
                 <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl text-xs font-bold flex items-center gap-2">
@@ -803,9 +822,13 @@ export default function Account() {
                           <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/40 border border-blue-200/80 rounded-2xl p-3.5 space-y-2 mt-1 text-left">
                             <div className="flex justify-between items-center border-b border-blue-200/50 pb-2">
                               <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0">
-                                  <User size={14} />
-                                </div>
+                                {appt.assignedEmployeePhoto ? (
+                                  <img src={appt.assignedEmployeePhoto} alt={appt.assignedEmployeeName || "Crew"} className="w-8 h-8 rounded-full object-cover shadow-sm border border-white" />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                    <User size={14} />
+                                  </div>
+                                )}
                                 <div>
                                   <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Assigned Detailer Crew</span>
                                   <span className="font-heading font-extrabold text-dark text-xs">{appt.assignedEmployeeName || "Mobile Detailing Squad"}</span>
@@ -1156,9 +1179,18 @@ export default function Account() {
                 {(viewingBookingDetails.assignedEmployee || viewingBookingDetails.assignedEmployeeName) ? (
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-200/80 rounded-2xl p-4 space-y-3 text-left">
                     <div className="flex justify-between items-center border-b border-blue-200/60 pb-2">
-                      <div>
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Assigned Detailer Squad</span>
-                        <span className="font-heading font-extrabold text-dark text-base">{viewingBookingDetails.assignedEmployeeName || "Mobile Detailing Squad"}</span>
+                      <div className="flex items-center gap-3">
+                        {viewingBookingDetails.assignedEmployeePhoto ? (
+                          <img src={viewingBookingDetails.assignedEmployeePhoto} alt="Crew" className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                            <User size={20} />
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Assigned Detailer Squad</span>
+                          <span className="font-heading font-extrabold text-dark text-base">{viewingBookingDetails.assignedEmployeeName || "Mobile Detailing Squad"}</span>
+                        </div>
                       </div>
                       <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-300">
                         {viewingBookingDetails.bookingStatus || "Accepted"}

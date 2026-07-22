@@ -24,13 +24,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import EmployeeDashboard from "./pages/crew/EmployeeDashboard";
 import NotificationCenter from "./pages/NotificationCenter";
 
-import ExteriorWash from "./pages/services/ExteriorWash";
-import ServiceDetailPage from "./pages/ServiceDetail";
-import InteriorCleaning from "./pages/services/InteriorCleaning";
-import FoamWash from "./pages/services/FoamWash";
-import WaxPolish from "./pages/services/WaxPolish";
-import DashboardCleaning from "./pages/services/DashboardCleaning";
-import TyreDressing from "./pages/services/TyreDressing";
 
 import PartTimeJob from "./pages/jobs/PartTimeJob";
 import ApplyNow from "./pages/jobs/ApplyNow";
@@ -40,6 +33,8 @@ import WorkWithUs from "./pages/jobs/WorkWithUs";
 import DynamicLandingPage from "./pages/seo/DynamicLandingPage";
 import BlogIndex from "./pages/blog/BlogIndex";
 import BlogPost from "./pages/blog/BlogPost";
+import TermsConditions from "./pages/TermsConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -54,7 +49,8 @@ function AnimatedRoutes() {
           <Route path="jobs" element={<Jobs />} />
           <Route path="book" element={<Book />} />
           <Route path="contact" element={<Contact />} />
-          
+          <Route path="terms" element={<TermsConditions />} />
+          <Route path="privacy" element={<PrivacyPolicy />} />
           {/* Blog Routes */}
           <Route path="blog" element={<BlogIndex />} />
           <Route path="blog/:slug" element={<BlogPost />} />

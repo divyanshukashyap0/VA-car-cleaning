@@ -56,6 +56,11 @@ export default function NotificationCenter() {
     const unsubscribe = subscribeToNotifications(user.uid, (data) => {
       setNotifications(data);
       setLoading(false);
+      
+      // Automatically mark all as read if any are unread
+      if (data.some(n => !n.read) && navigator.onLine) {
+        markAllNotificationsAsRead(user.uid).catch(console.error);
+      }
     });
 
     return () => {
@@ -105,14 +110,7 @@ export default function NotificationCenter() {
     await deleteNotification(id);
   };
 
-  const handleMarkAllRead = async () => {
-    if (!user) return;
-    if (isOffline) {
-      alert("Marking all read is disabled when offline!");
-      return;
-    }
-    await markAllNotificationsAsRead(user.uid);
-  };
+
 
   // Filtering
   const categoriesList = ["All", ...Array.from(new Set(notifications.map(n => n.type).filter(Boolean)))];
@@ -182,15 +180,6 @@ export default function NotificationCenter() {
                 <WifiOff size={12} />
                 Offline Mode
               </span>
-            )}
-            {notifications.filter(n => !n.read && !n.archived).length > 0 && (
-              <button
-                onClick={handleMarkAllRead}
-                className="bg-primary hover:bg-[#0b327b] text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
-              >
-                <CheckCircle size={14} />
-                Mark all read
-              </button>
             )}
           </div>
         </div>

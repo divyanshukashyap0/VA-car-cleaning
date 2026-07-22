@@ -8,58 +8,31 @@ import SeoTextSection from "../components/seo/SeoTextSection";
 
 const detailedServices = [
   {
-    title: "Exterior Wash",
-    description: "Our signature exterior clean removing grit, dirt, and atmospheric film. We use high-lubricity foam and scratch-free microfiber mitts.",
-    benefits: ["Scratch-free hand wash", "Wheel & wheel well blast", "Streak-free glass clean", "Hand towel dry"],
-    icon: <Droplets size={36} />,
-    price: "₹499",
-    duration: "45 Mins",
+    title: "Subscription (Small Car)",
+    description: "1 month plan for small car. Includes daily cloth wipe and 1 full wash per week.",
+    benefits: ["Daily cloth wipe", "1 full wash per week", "Priority scheduling", "Interior dusting"],
+    icon: <Car size={36} />,
+    price: "₹800",
+    duration: "1 Month",
     image: "https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800"
   },
   {
-    title: "Interior Cleaning",
-    description: "A comprehensive cabin rejuvenation. We deep vacuum all carpet and fabric surfaces, disinfect contact points, and restore matte finishes.",
-    benefits: ["Complete carpets & mats vacuumed", "Upholstery spot-cleaned", "Disinfection of console & doors", "Odor neutralizer treatment"],
-    icon: <Sparkles size={36} />,
-    price: "₹799",
-    duration: "60 Mins",
-    image: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800"
-  },
-  {
-    title: "Premium Detailing",
-    description: "The ultimate bumper-to-bumper detailing package. Restores exterior paint clarity and brings interior surfaces to showroom quality.",
-    benefits: ["3-step paint decontamination", "Ultra-soft premium paste wax", "Engine bay detail & dress", "Leather conditioning treatment"],
+    title: "Subscription (Big Car)",
+    description: "1 month plan for big car. Includes daily cloth wipe and 1 full wash per week.",
+    benefits: ["Daily cloth wipe", "1 full wash per week", "Priority scheduling", "Interior dusting"],
     icon: <ShieldCheck size={36} />,
-    price: "₹1999",
-    duration: "120 Mins",
+    price: "₹1500",
+    duration: "1 Month",
     image: "https://images.unsplash.com/photo-1552930294-6b595f4c2974?auto=format&fit=crop&q=80&w=800"
   },
   {
-    title: "Ceramic Coating",
-    description: "Apply a premium nano-crystalline ceramic layer. Protects against UV rays, acid rain, road salt, and harsh bird droppings for up to 2 years.",
-    benefits: ["9H hardness coating application", "Intense hydrophobic effect", "Enhanced glossy mirror look", "2 years warranty certificate"],
-    icon: <Flame size={36} />,
-    price: "₹4999",
-    duration: "4 Hours",
-    image: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=800"
-  },
-  {
-    title: "Engine Cleaning",
-    description: "Remove accumulated grease, grime, and dust from the engine bay safely using high-pressure steam and specialized degreasers.",
-    benefits: ["Steam cleaning of engine bay", "Degrease all rubber & metal components", "Satin-finish protective dress", "Improves heat dissipation"],
-    icon: <Settings size={36} />,
-    price: "₹699",
-    duration: "40 Mins",
-    image: "https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=800"
-  },
-  {
-    title: "Glass Detailing",
-    description: "Remove stubborn hard water stains, tree sap, and light scratches from your windshield and side windows for pristine clarity.",
-    benefits: ["Glass clay bar decontamination", "Machine glass polish & buff", "Rain-repellent coat application", "Perfect night visibility"],
-    icon: <Wind size={36} />,
-    price: "₹399",
-    duration: "30 Mins",
-    image: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&q=80&w=800"
+    title: "One time (Full Wash)",
+    description: "Enjoy a professional one-time exterior car wash using high-pressure foam and premium cleaning products. This service includes exterior body wash, tyre & wheel cleaning, dashboard dust cleaning, glass cleaning, and microfiber drying for a spotless finish.",
+    benefits: ["Exterior body wash", "Tyre & wheel cleaning", "Dashboard dust cleaning", "Glass cleaning & microfiber drying"],
+    icon: <Droplets size={36} />,
+    price: "₹299",
+    duration: "60 Mins",
+    image: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800"
   }
 ];
 

@@ -35,7 +35,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const isInnerPage = location.pathname !== "/";
@@ -177,7 +177,7 @@ export default function Navbar() {
             <Link to="/account" className="flex items-center gap-2 group shrink-0">
               <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20 group-hover:border-[#F4B400] transition-colors">
                 <img
-                  src={user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
+                  src={profile?.photo || user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
                   onError={(e) => handleAvatarError(e, user.email || user.displayName || user.uid)}
                   alt="My Profile avatar"
                   className="w-full h-full object-cover"
@@ -221,7 +221,7 @@ export default function Navbar() {
               >
                 <div className="w-7 h-7 rounded-full overflow-hidden border border-[#F4B400]/40">
                   <img
-                    src={user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
+                    src={profile?.photo || user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
                     onError={(e) => handleAvatarError(e, user.email || user.displayName || user.uid)}
                     alt="Account"
                     className="w-full h-full object-cover"
@@ -303,7 +303,7 @@ export default function Navbar() {
                   >
                     <div className="w-9 h-9 rounded-full overflow-hidden border border-[#F4B400]">
                       <img
-                        src={user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
+                        src={profile?.photo || user.photoURL || getCartoonAvatar(user.email || user.displayName || user.uid)}
                         onError={(e) => handleAvatarError(e, user.email || user.displayName || user.uid)}
                         alt="Avatar"
                         className="w-full h-full object-cover"

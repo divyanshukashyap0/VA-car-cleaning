@@ -7,13 +7,13 @@ import { getRealtimeCompanyStats, RealtimeCompanyStats } from "../../services/db
 
 export default function Hero() {
   const [realtimeStats, setRealtimeStats] = useState<RealtimeCompanyStats>({
-    carsCleaned: "1000+",
-    topRating: "4.9",
-    satisfaction: "100%",
-    teamMembers: "50+",
+    carsCleaned: "0",
+    topRating: "0.0",
+    satisfaction: "0%",
+    teamMembers: "0",
     totalBookingsCount: 0,
     completedBookingsCount: 0,
-    averageRating: 4.9,
+    averageRating: 0,
     totalReviewsCount: 0,
     activeCrewCount: 0
   });
@@ -38,10 +38,10 @@ export default function Hero() {
         <img
           src="https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=2000"
           alt="Premium Detailing Car Wash at Home"
-          className="w-full h-full object-cover opacity-35 object-center"
+          className="w-full h-full object-cover opacity-70 object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070C16] via-[#070C16]/80 to-transparent" />
-        <div className="absolute inset-y-0 left-0 w-full md:w-[60%] bg-gradient-to-r from-[#070C16] via-[#070C16]/90 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070C16] via-[#070C16]/60 to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-full md:w-[60%] bg-gradient-to-r from-[#070C16] via-[#070C16]/70 to-transparent" />
       </div>
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">

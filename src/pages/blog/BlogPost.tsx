@@ -1,12 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { blogPosts } from '../../data/blogData';
+import { getAllBlogPosts, dbBlogPost } from '../../services/dbService';
 import SEO from '../../components/seo/SEO';
 import { Calendar, User, ArrowLeft, Tag } from 'lucide-react';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
-  const post = blogPosts.find(p => p.slug === slug);
+  const [post, setPost] = useState<dbBlogPost | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const posts = await getAllBlogPosts();
+        const found = posts.find(p => p.slug === slug);
+        setPost(found || null);
+      } catch (err) {
+        console.error("Error loading blog post:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPost();
+  }, [slug]);
+
+  if (loading) {
+    return <div className="min-h-screen pt-40 text-center font-bold text-gray-500">Loading post...</div>;
+  }
 
   if (!post) {
     return <Navigate to="/blog" replace />;

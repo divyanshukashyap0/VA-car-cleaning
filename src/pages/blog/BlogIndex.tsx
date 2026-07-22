@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { blogPosts } from '../../data/blogData';
+import { getAllBlogPosts, dbBlogPost } from '../../services/dbService';
 import SEO from '../../components/seo/SEO';
 import { Calendar, User, ArrowRight } from 'lucide-react';
 
 export default function BlogIndex() {
+  const [blogPosts, setBlogPosts] = useState<dbBlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const posts = await getAllBlogPosts();
+        setBlogPosts(posts);
+      } catch (err) {
+        console.error("Failed to load blog posts:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBlogs();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO 

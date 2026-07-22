@@ -40,7 +40,11 @@ import {
   getBeforeAfterItems,
   createOrUpdateBeforeAfterItem,
   deleteBeforeAfterItem,
-  dbBeforeAfterItem
+  dbBeforeAfterItem,
+  getAllBlogPosts,
+  createOrUpdateBlogPost,
+  deleteBlogPost,
+  dbBlogPost
 } from "../services/dbService";
 import NotificationCenterTab from "../components/admin/NotificationCenterTab";
 import CloudinaryUploader from "../components/common/CloudinaryUploader";
@@ -128,7 +132,8 @@ interface AdminReview {
 
 export default function Admin() {
   const { user, profile, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<"stats" | "appointments" | "users" | "jobs" | "services" | "pricing" | "reviews" | "logs" | "notifications" | "staff" | "loyalty">("stats");
+  const isAdminUser = profile?.role === "admin";
+  const [activeTab, setActiveTab] = useState<"stats" | "appointments" | "users" | "jobs" | "services" | "pricing" | "reviews" | "logs" | "notifications" | "staff" | "loyalty" | "blogs">("stats");
 
   // Loyalty Management State
   const [loyaltyConfig, setLoyaltyConfig] = useState<dbLoyaltySettings>(DEFAULT_LOYALTY_SETTINGS);
@@ -174,6 +179,16 @@ export default function Admin() {
   const [servicesList, setServicesList] = useState<dbService[]>([]);
   const [editingService, setEditingService] = useState<dbService | null>(null);
   const [isAddingService, setIsAddingService] = useState(false);
+
+  // Blogs CMS state
+  const [blogsList, setBlogsList] = useState<dbBlogPost[]>([]);
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+  const [editingBlog, setEditingBlog] = useState<dbBlogPost | null>(null);
+  const [blogFormTitle, setBlogFormTitle] = useState("");
+  const [blogFormExcerpt, setBlogFormExcerpt] = useState("");
+  const [blogFormContent, setBlogFormContent] = useState("");
+  const [blogFormCoverImage, setBlogFormCoverImage] = useState("");
+  const [blogFormTags, setBlogFormTags] = useState("");
 
   const [serviceFormId, setServiceFormId] = useState("");
   const [serviceFormName, setServiceFormName] = useState("");
@@ -428,7 +443,7 @@ export default function Admin() {
             id: uid,
             name: userData?.name || userData?.displayName || simUserDisplayName || profileData?.name || "New Detailer Crew",
             email: userData?.email || simUserEmail || profileData?.email || "",
-            photo: userData?.photoURL || profileData?.photoURL || getCartoonAvatar(userData?.email || simUserEmail || "detailer"),
+            photo: userData?.photo || profileData?.photo || userData?.photoURL || profileData?.photoURL || getCartoonAvatar(userData?.email || simUserEmail || "detailer"),
             phone: userData?.contactNumber || userData?.phone || profileData?.contactNumber || "+91 88888 88888",
             address: userData?.address || (profileData?.addresses && profileData.addresses[0]) || "N/A",
             department: empData?.department || "Detailing Crew",
@@ -833,6 +848,9 @@ export default function Admin() {
       fetchServicesList();
       fetchBeforeAfterGallery();
     }
+    if (activeTab === "blogs") {
+      fetchBlogPosts();
+    }
     if (activeTab === "pricing") {
       fetchPricingPlans();
     }
@@ -879,6 +897,7 @@ export default function Admin() {
 
     // 6. Custom Services & Pricing Setup
     fetchServicesList();
+    fetchBlogPosts();
     fetchPricingPlans();
     fetchAboutSettings();
     fetchContactSettings();
@@ -943,6 +962,73 @@ export default function Admin() {
     } catch (err) {
       console.error("Error updating job status:", err);
     }
+  };
+
+  const fetchBlogPosts = async () => {
+    try {
+      const data = await getAllBlogPosts();
+      setBlogsList(data);
+    } catch (err) {
+      console.error("Failed to load blog posts:", err);
+    }
+  };
+
+  const handleCreateOrUpdateBlog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const slug = editingBlog ? editingBlog.slug : blogFormTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const newBlog: dbBlogPost = {
+        id: editingBlog?.id || `blog_${Date.now()}`,
+        slug: slug,
+        title: blogFormTitle,
+        excerpt: blogFormExcerpt,
+        content: blogFormContent,
+        date: editingBlog?.date || new Date().toISOString().split("T")[0],
+        author: editingBlog?.author || profile?.name || "Admin",
+        coverImage: blogFormCoverImage,
+        tags: blogFormTags.split(",").map(t => t.trim()).filter(Boolean)
+      };
+      await createOrUpdateBlogPost(newBlog);
+      alert(editingBlog ? "Blog updated successfully!" : "Blog created successfully!");
+      setIsBlogModalOpen(false);
+      fetchBlogPosts();
+    } catch (err) {
+      console.error("Error saving blog:", err);
+      alert("Error saving blog post.");
+    }
+  };
+
+  const handleDeleteBlog = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this blog post? This action cannot be undone.")) {
+      try {
+        await deleteBlogPost(id);
+        alert("Blog deleted successfully!");
+        fetchBlogPosts();
+      } catch (err) {
+        console.error("Error deleting blog:", err);
+        alert("Error deleting blog post.");
+      }
+    }
+  };
+
+  const openAddBlogModal = () => {
+    setEditingBlog(null);
+    setBlogFormTitle("");
+    setBlogFormExcerpt("");
+    setBlogFormContent("");
+    setBlogFormCoverImage("");
+    setBlogFormTags("");
+    setIsBlogModalOpen(true);
+  };
+
+  const openEditBlogModal = (blog: dbBlogPost) => {
+    setEditingBlog(blog);
+    setBlogFormTitle(blog.title);
+    setBlogFormExcerpt(blog.excerpt);
+    setBlogFormContent(blog.content);
+    setBlogFormCoverImage(blog.coverImage);
+    setBlogFormTags(blog.tags.join(", "));
+    setIsBlogModalOpen(true);
   };
 
   const fetchServicesList = async () => {
@@ -1167,7 +1253,15 @@ export default function Admin() {
                 }`}
             >
               <Layers size={16} />
-              Services, Pricing & Content
+              Services & Pricing
+            </button>
+            <button
+              onClick={() => setActiveTab("blogs")}
+              className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all cursor-pointer ${activeTab === "blogs" ? "bg-primary text-white shadow shadow-primary/20" : "hover:bg-gray-50 text-gray-500"
+                }`}
+            >
+              <Image size={16} />
+              Blogs CMS
             </button>
             {profile?.role !== "staff" && (
               <button
@@ -3409,6 +3503,159 @@ export default function Admin() {
               </button>
             </form>
           </motion.div>
+        </div>
+      )}
+
+      {/* Blog Management Modal */}
+      {isBlogModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+          >
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="font-heading font-extrabold text-dark text-lg">
+                {editingBlog ? "Edit Blog Post" : "Create New Blog Post"}
+              </h3>
+              <button
+                onClick={() => setIsBlogModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors cursor-pointer"
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleCreateOrUpdateBlog} className="space-y-5 text-left">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Blog Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={blogFormTitle}
+                      onChange={(e) => setBlogFormTitle(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 text-xs font-semibold text-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tags (comma separated)</label>
+                    <input
+                      type="text"
+                      value={blogFormTags}
+                      onChange={(e) => setBlogFormTags(e.target.value)}
+                      placeholder="e.g. Detailing, Tips, Care"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 text-xs font-semibold text-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Short Excerpt</label>
+                  <textarea
+                    required
+                    rows={2}
+                    value={blogFormExcerpt}
+                    onChange={(e) => setBlogFormExcerpt(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs font-semibold text-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Blog Content (HTML Supported)</label>
+                  <textarea
+                    required
+                    rows={8}
+                    value={blogFormContent}
+                    onChange={(e) => setBlogFormContent(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs font-medium text-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none font-mono"
+                    placeholder="<h2>Heading</h2><p>Paragraph text here...</p>"
+                  />
+                </div>
+
+                <CloudinaryUploader
+                  label="Cover Image (Cloudinary / File)"
+                  value={blogFormCoverImage}
+                  onChange={setBlogFormCoverImage}
+                />
+
+                <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsBlogModalOpen(false)}
+                    className="px-6 py-2.5 rounded-xl text-xs font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary hover:bg-[#0b327b] shadow cursor-pointer"
+                  >
+                    {editingBlog ? "Save Changes" : "Publish Blog"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* BLOGS MANAGEMENT TAB CONTENT */}
+      {activeTab === "blogs" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-2xl font-heading font-extrabold text-dark">Blog Management</h2>
+              <p className="text-gray-500 text-sm mt-1">Create and manage content for the public blog.</p>
+            </div>
+            <button
+              onClick={openAddBlogModal}
+              className="bg-primary hover:bg-[#0b327b] text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg flex items-center gap-2 cursor-pointer"
+            >
+              <Plus size={16} /> Add New Post
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {blogsList.map(blog => (
+              <div key={blog.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+                <div className="aspect-video bg-gray-100 relative">
+                  <img src={blog.coverImage || "https://placehold.co/600x400/eeeeee/cccccc?text=No+Image"} alt={blog.title} className="w-full h-full object-cover" />
+                  <div className="absolute top-3 left-3 bg-white/90 px-2 py-1 rounded text-[10px] font-bold text-primary backdrop-blur-sm">
+                    {new Date(blog.date).toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="p-5 flex flex-col flex-grow">
+                  <h3 className="font-heading font-bold text-dark text-base mb-2 line-clamp-2">{blog.title}</h3>
+                  <p className="text-gray-500 text-xs mb-4 line-clamp-3">{blog.excerpt}</p>
+                  
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-50">
+                    <span className="text-[10px] font-semibold text-gray-400">By {blog.author}</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => openEditBlogModal(blog)} className="w-8 h-8 rounded-lg bg-gray-50 text-primary flex items-center justify-center hover:bg-primary/10 cursor-pointer">
+                        <Settings size={14} />
+                      </button>
+                      <button onClick={() => handleDeleteBlog(blog.id)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 cursor-pointer">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {blogsList.length === 0 && (
+              <div className="col-span-full bg-white border border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center text-center">
+                <Image size={40} className="text-gray-300 mb-4" />
+                <h3 className="text-dark font-heading font-bold text-lg">No Blog Posts Yet</h3>
+                <p className="text-gray-400 text-sm mt-1 max-w-sm">Create your first blog post to start engaging with your customers.</p>
+                <button onClick={openAddBlogModal} className="mt-6 text-primary font-bold text-sm hover:underline cursor-pointer">
+                  + Create Post
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -283,6 +283,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfileDetails = async (data: Partial<UserProfile>) => {
     if (!user) return;
     await updateUserProfile(user.uid, data);
+    
+    // Update Firebase Auth profile if photo or name changed
+    if (data.photo || data.name) {
+      const authUpdates: any = {};
+      if (data.name) authUpdates.displayName = data.name;
+      if (data.photo) authUpdates.photoURL = data.photo;
+      
+      try {
+        if ((auth as any).updateCurrentUserProfile) {
+          await (auth as any).updateCurrentUserProfile(authUpdates);
+        } else if (auth.currentUser) {
+          const { updateProfile } = await import("firebase/auth");
+          await updateProfile(auth.currentUser, authUpdates);
+        }
+        setUser(auth.currentUser);
+      } catch (e) {
+        console.error("Failed to sync Firebase Auth profile", e);
+      }
+    }
+    
     setProfile((prev) => (prev ? { ...prev, ...data } : null));
   };
 
