@@ -31,8 +31,6 @@ import Benefits from "./pages/jobs/Benefits";
 import WorkWithUs from "./pages/jobs/WorkWithUs";
 
 import DynamicLandingPage from "./pages/seo/DynamicLandingPage";
-import BlogIndex from "./pages/blog/BlogIndex";
-import BlogPost from "./pages/blog/BlogPost";
 import TermsConditions from "./pages/TermsConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 
@@ -51,9 +49,6 @@ function AnimatedRoutes() {
           <Route path="contact" element={<Contact />} />
           <Route path="terms" element={<TermsConditions />} />
           <Route path="privacy" element={<PrivacyPolicy />} />
-          {/* Blog Routes */}
-          <Route path="blog" element={<BlogIndex />} />
-          <Route path="blog/:slug" element={<BlogPost />} />
 
           {/* Dynamic SEO Routes for Content Scaling */}
           <Route path="services/:serviceSlug" element={<DynamicLandingPage type="service" />} />

@@ -95,6 +95,8 @@ export interface dbBooking extends BaseDoc {
   assignedEmployeePhoto?: string;
   crewArrivingDate?: string;
   crewArrivingTime?: string;
+  acceptedAt?: string;
+  completedAt?: string;
   bookingStatus: "Pending" | "Accepted" | "Assigned" | "In Progress" | "Completed" | "Cancelled";
   rejectedBy?: string[]; // UIDs of crew who rejected this booking
   scheduledDate: string;
@@ -479,7 +481,7 @@ export const createBooking = async (data: Omit<dbBooking, "id" | "bookingStatus"
       window.dispatchEvent(new CustomEvent("sim_notification_created", { detail: { type: "crew_broadcast" } }));
     }
   } catch (err) {
-    console.error("Error sending crew notifications on booking creation:", err);
+    console.debug("Crew notification notice on booking creation:", err);
   }
 
   return res.id;
@@ -548,13 +550,15 @@ export const crewAcceptBooking = async (bookingId: string, crewUid: string, crew
     }
   } catch (e) {}
 
+  const now = new Date().toISOString();
   const updated: Partial<dbBooking> = {
     assignedEmployee: crewUid,
     assignedEmployeeName: crewName,
     assignedEmployeePhone: crewPhone,
     assignedEmployeePhoto: crewPhoto,
+    acceptedAt: now,
     bookingStatus: "Accepted" as const,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
     updatedBy: crewUid
   };
   await ref.set(updated, { merge: true });
@@ -619,11 +623,21 @@ export const updateBookingStatus = async (bookingId: string, status: dbBooking["
   const ref = db.collection("bookings").doc(bookingId);
   const prevSnap = await ref.get();
   const prev = prevSnap.data();
-  const updated = {
+  const now = new Date().toISOString();
+
+  const updated: Record<string, any> = {
     bookingStatus: status,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
     updatedBy: auth.currentUser?.uid || "system"
   };
+
+  if (status === "Completed" && (!prev || !prev.completedAt)) {
+    updated.completedAt = now;
+  }
+  if (status === "Accepted" && (!prev || !prev.acceptedAt)) {
+    updated.acceptedAt = now;
+  }
+
   await ref.set(updated, { merge: true });
   await logAuditAction(`Update booking status ${bookingId} to ${status}`, prev, updated);
 };
@@ -696,14 +710,16 @@ export const assignEmployee = async (
     }
   } catch (e) {}
 
+  const now = new Date().toISOString();
   const updated = {
     assignedEmployee: employeeId,
     assignedEmployeeName: employeeName,
     assignedEmployeePhone: crewPhone,
     crewArrivingDate: crewArrivingDate || "",
     crewArrivingTime: crewArrivingTime || "",
+    acceptedAt: now,
     bookingStatus: "Assigned" as const,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
     updatedBy: auth.currentUser?.uid || "system"
   };
   await ref.set(updated, { merge: true });
@@ -1911,9 +1927,31 @@ export const getBeforeAfterItems = async (): Promise<dbBeforeAfterItem[]> => {
   return Array.from(map.values()).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 };
 
+const ensureCompactImage = async (urlStr?: string): Promise<string> => {
+  if (!urlStr) return "";
+  if (urlStr.startsWith("data:image/") && urlStr.length > 200000) {
+    try {
+      const { compressImage } = await import("../utils/imageCompressor");
+      const res = await fetch(urlStr);
+      const blob = await res.blob();
+      const file = new File([blob], "compressed.jpg", { type: "image/jpeg" });
+      const comp = await compressImage(file, { maxWidth: 600, maxHeight: 600, quality: 0.65 });
+      return comp.dataUrl;
+    } catch (e) {
+      console.warn("Could not compress oversized dataUrl:", e);
+    }
+  }
+  return urlStr;
+};
+
 export const createOrUpdateBeforeAfterItem = async (item: dbBeforeAfterItem): Promise<void> => {
+  const safeBefore = await ensureCompactImage(item.beforeImage);
+  const safeAfter = await ensureCompactImage(item.afterImage);
+
   const docData = {
     ...item,
+    beforeImage: safeBefore,
+    afterImage: safeAfter,
     isDeleted: false,
     updatedAt: new Date().toISOString()
   };
@@ -1982,8 +2020,8 @@ export const getRealtimeCompanyStats = async (): Promise<RealtimeCompanyStats> =
       totalBookingsCount = bookings.length;
       completedCount = bookings.filter((b) => b.bookingStatus === "Completed").length || bookings.length;
     }
-  } catch (e) {
-    console.debug("Realtime stats bookings notice:", e);
+  } catch {
+    // Silent fallback to default metrics
   }
 
   // 2. Fetch real-time customer reviews and calculate average top rating & satisfaction
@@ -1995,8 +2033,8 @@ export const getRealtimeCompanyStats = async (): Promise<RealtimeCompanyStats> =
       const highRatingsCount = reviews.filter((r) => (r.stars || 5) >= 4).length;
       satisfactionRate = Math.round((highRatingsCount / reviewsCount) * 100);
     }
-  } catch (e) {
-    console.debug("Realtime stats reviews notice:", e);
+  } catch {
+    // Silent fallback to default metrics
   }
 
   // 3. Fetch active team members / detailers count from Firestore
@@ -2005,8 +2043,8 @@ export const getRealtimeCompanyStats = async (): Promise<RealtimeCompanyStats> =
     if (employees && employees.length > 0) {
       activeCrewCount = employees.filter((emp) => !emp.isDeleted).length || activeCrewCount;
     }
-  } catch (e) {
-    console.debug("Realtime stats crew count notice:", e);
+  } catch {
+    // Silent fallback to default metrics
   }
 
   const computedRating = reviewsCount > 0 ? (totalStars / reviewsCount).toFixed(1) : "4.9";
@@ -2098,7 +2136,7 @@ export const getAllBlogPosts = async (): Promise<dbBlogPost[]> => {
     // Sort by date descending
     return posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (err) {
-    console.error("Error fetching blog posts:", err);
+    console.debug("Serving static blog posts fallback notice:", err);
     return fallbackBlogPosts as dbBlogPost[];
   }
 };

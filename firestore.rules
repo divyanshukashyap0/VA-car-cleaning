@@ -74,6 +74,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Blog Posts Collection
+    match /blogs/{blogId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Employees / Crew Directory Collection
     match /employees/{employeeId} {
       allow read: if true;
@@ -109,7 +115,7 @@ service cloud.firestore {
         resource.data.user == 'system' ||
         isAdmin()
       );
-      allow create: if isAuthenticated() && (request.resource.data.user == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (resource.data.user == request.auth.uid || isAdmin());
       allow delete: if isAdmin() || (isAuthenticated() && resource.data.user == request.auth.uid);
     }

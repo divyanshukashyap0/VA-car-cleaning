@@ -57,42 +57,53 @@ export default function CloudinaryUploader({
       console.warn("Image compression failed, using original file:", compressionError);
     }
 
-    const convertToDataUrl = () => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (reader.result) {
-          onChange(reader.result.toString());
-        }
+    const convertToDataUrl = async () => {
+      try {
+        const { compressImage } = await import("../../utils/imageCompressor");
+        const comp = await compressImage(fileToUpload, { maxWidth: 600, maxHeight: 600, quality: 0.65 });
+        onChange(comp.dataUrl);
         setUploading(false);
-      };
-      reader.onerror = () => {
-        setError("Failed to read image file.");
-        setUploading(false);
-      };
-      reader.readAsDataURL(fileToUpload);
+      } catch (e) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.result) {
+            onChange(reader.result.toString());
+          }
+          setUploading(false);
+        };
+        reader.onerror = () => {
+          setError("Failed to read image file.");
+          setUploading(false);
+        };
+        reader.readAsDataURL(fileToUpload);
+      }
     };
 
     try {
-      // Try Cloudinary Unsigned Upload
-      const formData = new FormData();
-      formData.append("file", fileToUpload);
-      formData.append("upload_preset", customUploadPreset);
+      const hasConfig = customCloudName && customCloudName.trim() !== "va-car-cleaning" && customUploadPreset && customUploadPreset.trim() !== "unsigned_reviews";
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${customCloudName}/image/upload`, {
-        method: "POST",
-        body: formData
-      });
+      if (hasConfig) {
+        // Try Cloudinary Unsigned Upload
+        const formData = new FormData();
+        formData.append("file", fileToUpload);
+        formData.append("upload_preset", customUploadPreset);
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.secure_url) {
-          onChange(data.secure_url);
-          setUploading(false);
-          return;
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${customCloudName}/image/upload`, {
+          method: "POST",
+          body: formData
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.secure_url) {
+            onChange(data.secure_url);
+            setUploading(false);
+            return;
+          }
         }
       }
 
-      // If Cloudinary returned non-200 (e.g. 401 unsigned preset not set), fallback to local DataURL
+      // Fallback to local optimized DataURL
       convertToDataUrl();
     } catch (err: any) {
       console.warn("Cloudinary upload fallback to DataURL:", err);

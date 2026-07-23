@@ -27,7 +27,6 @@ const navLinks = [
     path: "#",
     dropdown: seoLocations.slice(0, 8).map(l => ({ name: l.name, path: `/kanpur/${l.slug}` }))
   },
-  { name: "Blog", path: "/blog" },
   { name: "About Us", path: "/about" },
 ];
 

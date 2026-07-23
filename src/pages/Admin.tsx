@@ -505,8 +505,13 @@ export default function Admin() {
         crewLongitude: b.crewLongitude,
         assignedEmployee: b.assignedEmployee || "",
         assignedEmployeeName: b.assignedEmployeeName || "",
+        assignedEmployeePhone: b.assignedEmployeePhone || "",
+        assignedEmployeePhoto: b.assignedEmployeePhoto || "",
         crewArrivingDate: b.crewArrivingDate || "",
-        crewArrivingTime: b.crewArrivingTime || ""
+        crewArrivingTime: b.crewArrivingTime || "",
+        acceptedAt: b.acceptedAt || "",
+        completedAt: b.completedAt || "",
+        createdAt: b.createdAt || ""
       }));
       setAppointments(mapped);
     } catch (err) {
@@ -1253,15 +1258,7 @@ export default function Admin() {
                 }`}
             >
               <Layers size={16} />
-              Services & Pricing
-            </button>
-            <button
-              onClick={() => setActiveTab("blogs")}
-              className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all cursor-pointer ${activeTab === "blogs" ? "bg-primary text-white shadow shadow-primary/20" : "hover:bg-gray-50 text-gray-500"
-                }`}
-            >
-              <Image size={16} />
-              Blogs CMS
+              Services Management
             </button>
             {profile?.role !== "staff" && (
               <button
@@ -1393,12 +1390,30 @@ export default function Admin() {
                             <div className="font-semibold text-gray-700">{a.date}</div>
                             <div className="text-[10px] text-gray-400 mt-0.5">{a.time}</div>
                           </div>
-                          {a.crewArrivingDate ? (
-                            <div className="pt-1.5 border-t border-gray-100">
-                              <div className="text-[10px] text-[#0f3b94] font-black uppercase tracking-wider">Crew Arriving</div>
-                              <div className="font-bold text-dark text-[11px]">{a.crewArrivingDate}</div>
-                              <div className="text-[10px] text-gray-500 mt-0.5">{a.crewArrivingTime}</div>
-                              <div className="text-[10px] text-[#0f3b94] font-semibold mt-0.5">({a.assignedEmployeeName})</div>
+                          {(a.assignedEmployeeName || a.assignedEmployee || a.crewArrivingDate) ? (
+                            <div className="pt-1.5 border-t border-gray-100 space-y-0.5 text-[10px]">
+                              <div className="text-[#0f3b94] font-black uppercase tracking-wider flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                Crew: {a.assignedEmployeeName || a.assignedEmployee}
+                              </div>
+                              {a.assignedEmployeePhone && (
+                                <div className="text-gray-500 font-mono">📞 {a.assignedEmployeePhone}</div>
+                              )}
+                              {a.crewArrivingDate && (
+                                <div className="text-gray-600 font-semibold">
+                                  ETA: {a.crewArrivingDate} ({a.crewArrivingTime})
+                                </div>
+                              )}
+                              {a.acceptedAt && (
+                                <div className="text-gray-400">
+                                  Accepted: {new Date(a.acceptedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                </div>
+                              )}
+                              {a.completedAt && (
+                                <div className="text-emerald-600 font-bold">
+                                  Completed: {new Date(a.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="pt-1.5 border-t border-gray-100 text-gray-400 text-[10px] font-semibold">
@@ -1678,17 +1693,6 @@ export default function Admin() {
                   </button>
 
                   <button
-                    onClick={() => setServiceSubTab("pricing")}
-                    className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${serviceSubTab === "pricing"
-                        ? "bg-primary text-white shadow"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                  >
-                    <DollarSign size={14} />
-                    Pricing Packages ({pricingPlans.length})
-                  </button>
-
-                  <button
                     onClick={() => setServiceSubTab("before_after")}
                     className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${serviceSubTab === "before_after"
                         ? "bg-primary text-white shadow"
@@ -1791,93 +1795,6 @@ export default function Admin() {
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* SUB-TAB 2: PRICING PACKAGES */}
-              {serviceSubTab === "pricing" && (
-                <div className="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
-                  <div className="flex flex-wrap justify-between items-center gap-4">
-                    <div>
-                      <h3 className="font-heading font-extrabold text-dark text-xl flex items-center gap-2">
-                        <DollarSign size={22} className="text-primary" />
-                        Pricing & Subscription Packages
-                      </h3>
-                      <p className="text-gray-400 text-xs mt-1">
-                        Manage all pricing tiers, packages, features, and subscription discounts shown on the /pricing page.
-                      </p>
-                    </div>
-                  </div>
-
-                  {pricingLoading ? (
-                    <div className="flex justify-center py-12">
-                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                      {pricingPlans.map((plan) => (
-                        <div
-                          key={plan.id}
-                          className={`p-6 bg-white border rounded-3xl shadow-sm relative flex flex-col justify-between space-y-4 ${plan.popular ? "border-primary ring-2 ring-primary/10" : "border-gray-100"
-                            }`}
-                        >
-                          {plan.popular && (
-                            <span className="absolute -top-3 right-6 bg-primary text-white text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow">
-                              Most Popular
-                            </span>
-                          )}
-
-                          <div className="space-y-3">
-                            <div>
-                              <h4 className="font-heading font-extrabold text-dark text-lg">{plan.name}</h4>
-                              <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">{plan.description}</p>
-                            </div>
-
-                            <div className="flex items-baseline gap-2 pt-1">
-                              <span className="text-3xl font-black text-dark font-heading">{plan.price}</span>
-                              <span className="text-xs text-emerald-600 font-bold bg-emerald-50 py-0.5 px-2 rounded-full border border-emerald-100">
-                                Subscription: {plan.subscriptionDiscountPercent ?? 15}% OFF
-                              </span>
-                            </div>
-
-                            <div className="pt-2">
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Package Features ({plan.features.length})</span>
-                              <ul className="space-y-1 text-xs text-gray-600">
-                                {plan.features.slice(0, 4).map((feat, idx) => (
-                                  <li key={idx} className="flex items-center gap-1.5">
-                                    <span className="text-green-500 font-bold">✓</span>
-                                    <span className="truncate">{feat}</span>
-                                  </li>
-                                ))}
-                                {plan.features.length > 4 && (
-                                  <li className="text-[10px] text-gray-400 font-bold font-mono">
-                                    +{plan.features.length - 4} more features
-                                  </li>
-                                )}
-                              </ul>
-                            </div>
-                          </div>
-
-                          {profile?.role !== "staff" && (
-                            <div className="flex gap-2 justify-end pt-3 border-t border-gray-100">
-                              <button
-                                onClick={() => openEditPlanModal(plan)}
-                                className="bg-gray-100 hover:bg-gray-200 text-dark font-bold py-2 px-4 rounded-xl text-xs cursor-pointer transition-colors"
-                              >
-                                Edit Package
-                              </button>
-                              <button
-                                onClick={() => handleDeletePlan(plan.id)}
-                                className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2 px-4 rounded-xl text-xs cursor-pointer transition-colors"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -3117,27 +3034,41 @@ export default function Admin() {
               {/* Detailing Crew Assignment */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-1">4. Dispatch & Crew Assignment</h4>
-                {viewingBookingDetails.crewArrivingDate ? (
-                  <div className="bg-[#0f3b94]/5 border border-[#0f3b94]/10 rounded-2xl p-4 text-xs space-y-2 text-[#0f3b94]">
+                {(viewingBookingDetails.assignedEmployeeName || viewingBookingDetails.assignedEmployee || viewingBookingDetails.crewArrivingDate) ? (
+                  <div className="bg-[#0f3b94]/5 border border-[#0f3b94]/10 rounded-2xl p-4 text-xs space-y-3 text-[#0f3b94]">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <span className="opacity-80 block font-semibold">Assigned Detailer</span>
-                        <span className="font-black text-sm">{viewingBookingDetails.assignedEmployeeName}</span>
+                        <span className="font-black text-sm">{viewingBookingDetails.assignedEmployeeName || "Assigned Crew"}</span>
                       </div>
                       <div>
-                        <span className="opacity-80 block font-semibold">Crew ID</span>
-                        <span className="font-mono font-bold">{viewingBookingDetails.assignedEmployee}</span>
+                        <span className="opacity-80 block font-semibold">Crew ID / Contact</span>
+                        <span className="font-mono font-bold">{viewingBookingDetails.assignedEmployeePhone || viewingBookingDetails.assignedEmployee}</span>
                       </div>
-                      <div className="col-span-2 pt-1 border-t border-[#0f3b94]/10 flex justify-between">
+                      {viewingBookingDetails.acceptedAt && (
                         <div>
-                          <span className="opacity-80 block font-semibold">Expected Arrival Date</span>
-                          <span className="font-extrabold">{viewingBookingDetails.crewArrivingDate}</span>
+                          <span className="opacity-80 block font-semibold">Booking Accept Time</span>
+                          <span className="font-extrabold">{new Date(viewingBookingDetails.acceptedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                         </div>
-                        <div className="text-right">
-                          <span className="opacity-80 block font-semibold">Arrival Time Slot</span>
-                          <span className="font-extrabold">{viewingBookingDetails.crewArrivingTime}</span>
+                      )}
+                      {viewingBookingDetails.completedAt && (
+                        <div>
+                          <span className="opacity-80 block font-semibold text-emerald-700">Booking Complete Time</span>
+                          <span className="font-extrabold text-emerald-700">{new Date(viewingBookingDetails.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                         </div>
-                      </div>
+                      )}
+                      {viewingBookingDetails.crewArrivingDate && (
+                        <div className="col-span-2 pt-2 border-t border-[#0f3b94]/10 flex justify-between">
+                          <div>
+                            <span className="opacity-80 block font-semibold">Expected Arrival Date</span>
+                            <span className="font-extrabold">{viewingBookingDetails.crewArrivingDate}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="opacity-80 block font-semibold">Arrival Time Slot</span>
+                            <span className="font-extrabold">{viewingBookingDetails.crewArrivingTime}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -3506,158 +3437,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Blog Management Modal */}
-      {isBlogModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/60 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-          >
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-heading font-extrabold text-dark text-lg">
-                {editingBlog ? "Edit Blog Post" : "Create New Blog Post"}
-              </h3>
-              <button
-                onClick={() => setIsBlogModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors cursor-pointer"
-              >
-                <XCircle size={18} />
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto custom-scrollbar">
-              <form onSubmit={handleCreateOrUpdateBlog} className="space-y-5 text-left">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Blog Title</label>
-                    <input
-                      type="text"
-                      required
-                      value={blogFormTitle}
-                      onChange={(e) => setBlogFormTitle(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 text-xs font-semibold text-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tags (comma separated)</label>
-                    <input
-                      type="text"
-                      value={blogFormTags}
-                      onChange={(e) => setBlogFormTags(e.target.value)}
-                      placeholder="e.g. Detailing, Tips, Care"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 text-xs font-semibold text-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Short Excerpt</label>
-                  <textarea
-                    required
-                    rows={2}
-                    value={blogFormExcerpt}
-                    onChange={(e) => setBlogFormExcerpt(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs font-semibold text-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Blog Content (HTML Supported)</label>
-                  <textarea
-                    required
-                    rows={8}
-                    value={blogFormContent}
-                    onChange={(e) => setBlogFormContent(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs font-medium text-dark focus:bg-white focus:ring-2 focus:ring-primary outline-none font-mono"
-                    placeholder="<h2>Heading</h2><p>Paragraph text here...</p>"
-                  />
-                </div>
-
-                <CloudinaryUploader
-                  label="Cover Image (Cloudinary / File)"
-                  value={blogFormCoverImage}
-                  onChange={setBlogFormCoverImage}
-                />
-
-                <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsBlogModalOpen(false)}
-                    className="px-6 py-2.5 rounded-xl text-xs font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary hover:bg-[#0b327b] shadow cursor-pointer"
-                  >
-                    {editingBlog ? "Save Changes" : "Publish Blog"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* BLOGS MANAGEMENT TAB CONTENT */}
-      {activeTab === "blogs" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-2xl font-heading font-extrabold text-dark">Blog Management</h2>
-              <p className="text-gray-500 text-sm mt-1">Create and manage content for the public blog.</p>
-            </div>
-            <button
-              onClick={openAddBlogModal}
-              className="bg-primary hover:bg-[#0b327b] text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg flex items-center gap-2 cursor-pointer"
-            >
-              <Plus size={16} /> Add New Post
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {blogsList.map(blog => (
-              <div key={blog.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-                <div className="aspect-video bg-gray-100 relative">
-                  <img src={blog.coverImage || "https://placehold.co/600x400/eeeeee/cccccc?text=No+Image"} alt={blog.title} className="w-full h-full object-cover" />
-                  <div className="absolute top-3 left-3 bg-white/90 px-2 py-1 rounded text-[10px] font-bold text-primary backdrop-blur-sm">
-                    {new Date(blog.date).toLocaleDateString()}
-                  </div>
-                </div>
-                <div className="p-5 flex flex-col flex-grow">
-                  <h3 className="font-heading font-bold text-dark text-base mb-2 line-clamp-2">{blog.title}</h3>
-                  <p className="text-gray-500 text-xs mb-4 line-clamp-3">{blog.excerpt}</p>
-                  
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-50">
-                    <span className="text-[10px] font-semibold text-gray-400">By {blog.author}</span>
-                    <div className="flex gap-2">
-                      <button onClick={() => openEditBlogModal(blog)} className="w-8 h-8 rounded-lg bg-gray-50 text-primary flex items-center justify-center hover:bg-primary/10 cursor-pointer">
-                        <Settings size={14} />
-                      </button>
-                      <button onClick={() => handleDeleteBlog(blog.id)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 cursor-pointer">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {blogsList.length === 0 && (
-              <div className="col-span-full bg-white border border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center text-center">
-                <Image size={40} className="text-gray-300 mb-4" />
-                <h3 className="text-dark font-heading font-bold text-lg">No Blog Posts Yet</h3>
-                <p className="text-gray-400 text-sm mt-1 max-w-sm">Create your first blog post to start engaging with your customers.</p>
-                <button onClick={openAddBlogModal} className="mt-6 text-primary font-bold text-sm hover:underline cursor-pointer">
-                  + Create Post
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

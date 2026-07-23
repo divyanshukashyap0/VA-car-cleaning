@@ -105,7 +105,32 @@ export default function Account() {
   const [editLang, setEditLang] = useState(profile?.preferredLanguage || "English");
   const [editNotif, setEditNotif] = useState(profile?.notificationPreference || "Both");
   const [editTheme, setEditTheme] = useState(profile?.themePreference || "Light");
-  const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    try {
+      await updateProfileDetails({
+        name: editName,
+        photo: editPhoto,
+        contactNumber: editPhone,
+        gender: editGender,
+        dob: editDob,
+        occupation: editOcc,
+        preferredLanguage: editLang,
+        notificationPreference: editNotif,
+        themePreference: editTheme,
+        profileCompletion: 85
+      });
+      setProfileSaveSuccess(true);
+      setTimeout(() => setProfileSaveSuccess(false), 4000);
+    } catch (err: any) {
+      alert("Error saving profile: " + (err.message || "Failed to update profile."));
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const [newAddr, setNewAddr] = useState("");
   const [isAddingAddr, setIsAddingAddr] = useState(false);
@@ -221,22 +246,7 @@ export default function Account() {
     )
   ];
 
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await updateProfileDetails({
-      photo: editPhoto,
-      contactNumber: editPhone,
-      gender: editGender,
-      dob: editDob,
-      occupation: editOcc,
-      preferredLanguage: editLang,
-      notificationPreference: editNotif,
-      themePreference: editTheme,
-      profileCompletion: 85
-    });
-    setProfileSaveSuccess(true);
-    setTimeout(() => setProfileSaveSuccess(false), 3000);
-  };
+
 
   const handleAddrSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -570,9 +580,17 @@ export default function Account() {
 
               <button
                 type="submit"
-                className="bg-primary hover:bg-[#0b327b] text-white font-bold py-3 px-6 rounded-2xl text-xs uppercase tracking-wider shadow cursor-pointer transition-all"
+                disabled={isSavingProfile}
+                className="w-full sm:w-auto bg-primary hover:bg-[#0b327b] text-white font-bold py-3.5 px-8 rounded-2xl text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Save Profile Configuration
+                {isSavingProfile ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving Configuration...
+                  </>
+                ) : (
+                  "SAVE PROFILE CONFIGURATION"
+                )}
               </button>
             </form>
           )}
@@ -851,17 +869,19 @@ export default function Account() {
                                 </div>
                               )}
 
-                              {appt.crewArrivingDate ? (
-                                <div className="flex items-center gap-1.5 font-bold text-gray-700">
-                                  <Clock size={12} className="text-amber-500 shrink-0" />
-                                  <span>Est. Arrival: </span>
-                                  <span className="text-dark font-extrabold">{appt.crewArrivingDate} at {appt.crewArrivingTime || appt.timeSlot}</span>
+                              {appt.acceptedAt && (
+                                <div className="flex items-center gap-1.5 text-gray-500 font-medium">
+                                  <Clock size={12} className="text-blue-500 shrink-0" />
+                                  <span>Accepted: </span>
+                                  <span className="text-dark font-bold">{new Date(appt.acceptedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                                 </div>
-                              ) : (
-                                <div className="flex items-center gap-1.5 text-gray-500 font-semibold">
-                                  <Clock size={12} className="text-amber-500 shrink-0" />
-                                  <span>Schedule: </span>
-                                  <span className="text-dark font-bold">{appt.scheduledDate} ({appt.timeSlot})</span>
+                              )}
+
+                              {appt.completedAt && (
+                                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                                  <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                                  <span>Completed: </span>
+                                  <span className="font-bold">{new Date(appt.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                                 </div>
                               )}
                             </div>

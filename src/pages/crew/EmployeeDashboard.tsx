@@ -480,6 +480,23 @@ export default function EmployeeDashboard({ embedded = false }: { embedded?: boo
                   </div>
                 </div>
 
+                {(selectedJobDetails.acceptedAt || selectedJobDetails.completedAt) && (
+                  <div className="grid grid-cols-2 gap-2 bg-blue-50/60 p-3 rounded-xl border border-blue-100 text-xs">
+                    {selectedJobDetails.acceptedAt && (
+                      <div>
+                        <span className="text-[10px] text-gray-500 font-bold uppercase block">Job Accepted</span>
+                        <span className="font-bold text-dark">{new Date(selectedJobDetails.acceptedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      </div>
+                    )}
+                    {selectedJobDetails.completedAt && (
+                      <div>
+                        <span className="text-[10px] text-emerald-600 font-bold uppercase block">Job Completed</span>
+                        <span className="font-extrabold text-emerald-700">{new Date(selectedJobDetails.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Google Maps Live Location & Navigation Panel */}
                 <CrewLocationBroadcaster
                   bookingId={selectedJobDetails.id}

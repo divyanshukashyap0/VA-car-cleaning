@@ -13,33 +13,44 @@ export default function DynamicLandingPage({ type }: DynamicLandingProps) {
   const { slug, serviceSlug, locationSlug } = useParams<{ slug?: string, serviceSlug?: string, locationSlug?: string }>();
   const [reviews, setReviews] = useState<dbReview[]>([]);
 
+  const normalizeSlug = (str?: string) => (str || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
   // Parse slug like "foam-car-wash-kanpur" or "ceramic-coating-kakadeo"
-  // We need to find which service and location it matches.
   let matchedService = null;
   let matchedLocation = null;
 
   if (type === 'service' && serviceSlug) {
-    matchedService = seoServices.find(s => s.slug === serviceSlug);
+    const normReq = normalizeSlug(serviceSlug);
+    matchedService = seoServices.find(s => normalizeSlug(s.slug) === normReq || normalizeSlug(s.name) === normReq);
     matchedLocation = seoLocations[0]; // Default to Kanpur
   } else if (type === 'location' && locationSlug) {
-    matchedLocation = seoLocations.find(l => l.slug === locationSlug);
+    const normLoc = normalizeSlug(locationSlug);
+    matchedLocation = seoLocations.find(l => normalizeSlug(l.slug) === normLoc);
     matchedService = seoServices[0]; // Default to Doorstep Cleaning
   } else if (type === 'combined' && serviceSlug && locationSlug) {
-    matchedService = seoServices.find(s => s.slug === serviceSlug);
-    matchedLocation = seoLocations.find(l => l.slug === locationSlug);
+    const normReq = normalizeSlug(serviceSlug);
+    const normLoc = normalizeSlug(locationSlug);
+    matchedService = seoServices.find(s => normalizeSlug(s.slug) === normReq || normalizeSlug(s.name) === normReq);
+    matchedLocation = seoLocations.find(l => normalizeSlug(l.slug) === normLoc);
   } else if (slug) {
+    const normSlug = normalizeSlug(slug);
     for (const service of seoServices) {
-      if (slug.startsWith(service.slug)) {
+      if (normSlug.startsWith(normalizeSlug(service.slug))) {
         matchedService = service;
         const locationPart = slug.replace(`${service.slug}-`, '');
-        matchedLocation = seoLocations.find(l => l.slug === locationPart);
+        matchedLocation = seoLocations.find(l => normalizeSlug(l.slug) === normalizeSlug(locationPart));
         break;
       }
     }
   }
 
   // Fallback to generic if not matched properly
-  const service = matchedService || seoServices[0];
+  const service = matchedService || (serviceSlug ? {
+    name: serviceSlug.replace(/[-()]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim(),
+    slug: serviceSlug,
+    description: `Doorstep car detailing and cleaning for ${serviceSlug.replace(/[-()]/g, ' ')}.`,
+    price: "299"
+  } : seoServices[0]);
   const location = matchedLocation || seoLocations[0];
 
   useEffect(() => {

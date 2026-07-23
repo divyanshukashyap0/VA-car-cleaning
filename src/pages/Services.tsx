@@ -1,42 +1,55 @@
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Droplets, Sparkles, Wind, ShieldCheck, Settings, Car, Flame, CheckCircle, ShieldAlert } from "lucide-react";
+import { Droplets, Sparkles, ShieldCheck, Car, CheckCircle } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Link } from "react-router-dom";
 import BookingSection from "../components/sections/BookingSection";
 import SEO from "../components/seo/SEO";
 import SeoTextSection from "../components/seo/SeoTextSection";
-
-const detailedServices = [
-  {
-    title: "Subscription (Small Car)",
-    description: "1 month plan for small car. Includes daily cloth wipe and 1 full wash per week.",
-    benefits: ["Daily cloth wipe", "1 full wash per week", "Priority scheduling", "Interior dusting"],
-    icon: <Car size={36} />,
-    price: "₹800",
-    duration: "1 Month",
-    image: "https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800"
-  },
-  {
-    title: "Subscription (Big Car)",
-    description: "1 month plan for big car. Includes daily cloth wipe and 1 full wash per week.",
-    benefits: ["Daily cloth wipe", "1 full wash per week", "Priority scheduling", "Interior dusting"],
-    icon: <ShieldCheck size={36} />,
-    price: "₹1500",
-    duration: "1 Month",
-    image: "https://images.unsplash.com/photo-1552930294-6b595f4c2974?auto=format&fit=crop&q=80&w=800"
-  },
-  {
-    title: "One time (Full Wash)",
-    description: "Enjoy a professional one-time exterior car wash using high-pressure foam and premium cleaning products. This service includes exterior body wash, tyre & wheel cleaning, dashboard dust cleaning, glass cleaning, and microfiber drying for a spotless finish.",
-    benefits: ["Exterior body wash", "Tyre & wheel cleaning", "Dashboard dust cleaning", "Glass cleaning & microfiber drying"],
-    icon: <Droplets size={36} />,
-    price: "₹299",
-    duration: "60 Mins",
-    image: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800"
-  }
-];
+import { getAllServices, dbService } from "../services/dbService";
 
 export default function ServicesPage() {
+  const [services, setServices] = useState<dbService[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAllServices()
+      .then((data) => {
+        setServices(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load services:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  const getServiceIcon = (id: string, name: string) => {
+    const lower = (id + " " + name).toLowerCase();
+    if (lower.includes("subscription") || lower.includes("car")) return <Car size={36} />;
+    if (lower.includes("foam") || lower.includes("wash") || lower.includes("droplet")) return <Droplets size={36} />;
+    if (lower.includes("ceramic") || lower.includes("shield")) return <ShieldCheck size={36} />;
+    return <Sparkles size={36} />;
+  };
+
+  const getServiceBenefits = (name: string, desc: string) => {
+    const lower = (name + " " + desc).toLowerCase();
+    if (lower.includes("subscription")) {
+      return [
+        "Daily cloth wipe",
+        "1 full wash per week",
+        "Priority scheduling",
+        "Interior dusting"
+      ];
+    }
+    return [
+      "Exterior body wash",
+      "Tyre & wheel cleaning",
+      "Dashboard dust cleaning",
+      "Glass cleaning & microfiber drying"
+    ];
+  };
+
   return (
     <div className="min-h-screen bg-light">
       <SEO 
@@ -75,84 +88,92 @@ export default function ServicesPage() {
 
       {/* Services Grid */}
       <div className="container mx-auto px-4 md:px-6 py-10 md:py-14">
-        <div className="space-y-16">
-          {detailedServices.map((service, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className={`flex flex-col lg:flex-row gap-12 items-center bg-white p-6 md:p-10 rounded-[32px] shadow-xl ${
-                index % 2 === 1 ? "lg:flex-row-reverse" : ""
-              }`}
-            >
-              {/* Service Image */}
-              <div className="w-full lg:w-1/2 h-[350px] rounded-2xl overflow-hidden relative shadow-lg group">
-                <img
-                  src={service.image}
-                  alt={service.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-dark/60 to-transparent" />
-                <div className="absolute top-6 left-6 bg-primary text-white p-4 rounded-2xl shadow-xl">
-                  {service.icon}
-                </div>
-              </div>
+        {loading ? (
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-gray-500 font-semibold mt-4">Loading services...</p>
+          </div>
+        ) : (
+          <div className="space-y-16">
+            {services.map((service, index) => {
+              const benefits = getServiceBenefits(service.name, service.description);
+              const icon = getServiceIcon(service.id, service.name);
+              const serviceSlug = service.id || service.name.toLowerCase().replace(/\s+/g, "-");
 
-              {/* Service Details */}
-              <div className="w-full lg:w-1/2">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <h2 className="text-3xl font-heading font-extrabold text-dark">
-                    {service.title}
-                  </h2>
-                  <span className="text-2xl font-black text-primary bg-primary/5 px-4 py-1.5 rounded-full border border-primary/10">
-                    {service.price}
-                  </span>
-                </div>
+              return (
+                <motion.div
+                  key={service.id || index}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6 }}
+                  className={`flex flex-col lg:flex-row gap-12 items-center bg-white p-6 md:p-10 rounded-[32px] shadow-xl ${
+                    index % 2 === 1 ? "lg:flex-row-reverse" : ""
+                  }`}
+                >
+                  {/* Service Image */}
+                  <div className="w-full lg:w-1/2 h-[350px] rounded-2xl overflow-hidden relative shadow-lg group">
+                    <img
+                      src={service.image || "https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800"}
+                      alt={service.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-dark/60 to-transparent" />
+                    <div className="absolute top-6 left-6 bg-primary text-white p-4 rounded-2xl shadow-xl">
+                      {icon}
+                    </div>
+                  </div>
 
-                <p className="text-gray-600 text-lg mb-6 leading-relaxed">
-                  {service.description}
-                </p>
+                  {/* Service Details */}
+                  <div className="w-full lg:w-1/2">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <h2 className="text-3xl font-heading font-extrabold text-dark">
+                        {service.name}
+                      </h2>
+                      <span className="text-2xl font-black text-primary bg-primary/5 px-4 py-1.5 rounded-full border border-primary/10">
+                        ₹{service.price}
+                      </span>
+                    </div>
 
-                {/* Benefits Checklists */}
-                <div className="mb-8">
-                  <h4 className="text-sm font-semibold tracking-wider uppercase text-gray-400 mb-4">
-                    What is included
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {service.benefits.map((benefit, bIdx) => (
-                      <div key={bIdx} className="flex items-start gap-2.5">
-                        <CheckCircle size={18} className="text-green-500 shrink-0 mt-0.5" />
-                        <span className="text-gray-700 text-sm font-medium">{benefit}</span>
+                    <p className="text-gray-600 text-lg mb-6 leading-relaxed">
+                      {service.description}
+                    </p>
+
+                    {/* Benefits Checklists */}
+                    <div className="mb-8">
+                      <h4 className="text-sm font-semibold tracking-wider uppercase text-gray-400 mb-4">
+                        What is included
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {benefits.map((benefit, bIdx) => (
+                          <div key={bIdx} className="flex items-start gap-2.5">
+                            <CheckCircle size={18} className="text-green-500 shrink-0 mt-0.5" />
+                            <span className="text-gray-700 text-sm font-medium">{benefit}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
 
-                {/* Duration & Call to Actions */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-gray-500 font-medium">
-                    <span className="text-xs uppercase tracking-wider text-gray-400">Duration:</span>
-                    <span className="bg-gray-100 px-3 py-1 rounded-lg text-sm text-dark font-semibold">
-                      {service.duration}
-                    </span>
+                    {/* Duration & Call to Actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-gray-100">
+                      <div className="flex items-center gap-2 text-gray-500 font-medium">
+                        <span className="text-xs uppercase tracking-wider text-gray-400">Duration:</span>
+                        <span className="bg-gray-100 px-3 py-1 rounded-lg text-sm text-dark font-semibold">
+                          {service.name.toLowerCase().includes("subscription") ? "1 Month" : "60 Mins"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                        <Link to={`/book?service=${service.id}`} className="w-full sm:w-auto">
+                          <Button className="w-full sm:w-auto">Book This Service</Button>
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                    <Link to={`/services/${service.title.toLowerCase().replace(/\s+/g, "-")}`} className="w-full sm:w-auto">
-                      <button className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-dark font-bold px-5 py-3 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border border-gray-200">
-                        Details & Terms →
-                      </button>
-                    </Link>
-                    <Link to="/book" className="w-full sm:w-auto">
-                      <Button className="w-full sm:w-auto">Book This Service</Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
       <BookingSection />
 
