@@ -1204,8 +1204,8 @@ export const getBeforeAfterSettings = async (): Promise<dbBeforeAfterSettings> =
     console.error("Error getting before_after settings:", err);
   }
   return {
-    beforeImage: "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=1200",
-    afterImage: "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=1200",
+    beforeImage: "",
+    afterImage: "",
     useSeparateImages: false
   };
 };
@@ -1241,7 +1241,7 @@ export const DEFAULT_ABOUT_SETTINGS: dbAboutSettings = {
   storyHeading: "Redefining Mobile Detailing Across Districts",
   storyText1: "Founded with a mission to bring professional car detailing directly to vehicle owners' driveways, VA Car Cleaning Service replaces the inconvenience of waiting at traditional car wash stations.",
   storyText2: "Our trained technicians use 100% water-saving foam formulas, high-powered mobile vacuum systems, and non-scratch microfiber cloths to protect clear coats.",
-  storyImageUrl: "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=1200",
+  storyImageUrl: "",
   stat1Number: "1000+",
   stat1Label: "Cars Cleaned",
   stat2Number: "100%",
@@ -1328,21 +1328,21 @@ export const defaultServices: dbService[] = [
     id: "subscription-small",
     name: "Subscription (Small Car)",
     price: 800,
-    image: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=600",
+    image: "",
     description: "1 month plan for small car. Includes daily cloth wipe and 1 full wash per week."
   },
   {
     id: "subscription-big",
     name: "Subscription (Big Car)",
     price: 1500,
-    image: "https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&q=80&w=600",
+    image: "",
     description: "1 month plan for big car. Includes daily cloth wipe and 1 full wash per week."
   },
   {
     id: "one-time-full",
     name: "One time (Full Wash)",
     price: 299,
-    image: "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=600",
+    image: "",
     description: "Enjoy a professional one-time exterior car wash using high-pressure foam and premium cleaning products. This service includes exterior body wash, tyre & wheel cleaning, dashboard dust cleaning, glass cleaning, and microfiber drying for a spotless finish."
   }
 ];
@@ -1866,8 +1866,8 @@ export const DEFAULT_BEFORE_AFTER_ITEMS: dbBeforeAfterItem[] = [
     id: "ba-1",
     title: "Exterior Foam Wash & Gloss Polish",
     category: "Exterior Wash",
-    beforeImage: "https://images.unsplash.com/photo-1507136566006-cfc505b114fc?auto=format&fit=crop&q=80&w=800",
-    afterImage: "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=800",
+    beforeImage: "",
+    afterImage: "",
     description: "Deep mud extraction, foam bath, and ceramic shine polish.",
     displayOrder: 1
   },
@@ -1875,8 +1875,8 @@ export const DEFAULT_BEFORE_AFTER_ITEMS: dbBeforeAfterItem[] = [
     id: "ba-2",
     title: "Interior Cabin Deep Clean & Sanitize",
     category: "Interior Cleaning",
-    beforeImage: "https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&q=80&w=800",
-    afterImage: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&q=80&w=800",
+    beforeImage: "",
+    afterImage: "",
     description: "Stain removal on upholstery, dashboard dressing, and odor elimination.",
     displayOrder: 2
   },
@@ -1884,8 +1884,8 @@ export const DEFAULT_BEFORE_AFTER_ITEMS: dbBeforeAfterItem[] = [
     id: "ba-3",
     title: "Alloy Wheel & Tyre Dressing",
     category: "Wheel Detailing",
-    beforeImage: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&q=80&w=800",
-    afterImage: "https://images.unsplash.com/photo-1520050206274-a1ae44613e6d?auto=format&fit=crop&q=80&w=800",
+    beforeImage: "",
+    afterImage: "",
     description: "Brake dust removal, rim de-ironization, and wet-look tyre glaze.",
     displayOrder: 3
   }

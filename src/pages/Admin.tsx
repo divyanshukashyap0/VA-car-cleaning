@@ -1981,13 +1981,11 @@ export default function Admin() {
                     </div>
 
                     <div className="space-y-1 md:col-span-2">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Story Showcase Image URL</label>
-                      <input
-                        type="url"
-                        required
+                      <CloudinaryUploader
+                        label="Story Showcase Image (Cloudinary / File)"
                         value={aboutInputs.storyImageUrl}
-                        onChange={(e) => setAboutInputs({ ...aboutInputs, storyImageUrl: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                        onChange={(url) => setAboutInputs({ ...aboutInputs, storyImageUrl: url })}
+                        placeholder="https://res.cloudinary.com/... or upload image"
                       />
                     </div>
                   </div>
