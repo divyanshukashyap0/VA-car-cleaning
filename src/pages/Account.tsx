@@ -106,6 +106,7 @@ export default function Account() {
   const [editNotif, setEditNotif] = useState(profile?.notificationPreference || "Both");
   const [editTheme, setEditTheme] = useState(profile?.themePreference || "Light");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
