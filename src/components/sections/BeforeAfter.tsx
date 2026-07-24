@@ -64,13 +64,21 @@ export default function BeforeAfter() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* BEFORE Card */}
-                <div className="relative h-72 md:h-80 rounded-3xl overflow-hidden shadow-lg border border-gray-200 group">
-                  <img
-                    src={item.beforeImage}
-                    alt={`${item.title} Before`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                <div className="relative h-72 md:h-80 rounded-3xl overflow-hidden shadow-lg border border-gray-200 group bg-gray-900">
+                  {item.beforeImage ? (
+                    <img
+                      src={item.beforeImage}
+                      alt={`${item.title} Before`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 text-gray-400 p-6 text-center">
+                      <Sparkles size={32} className="mb-2 text-gray-500" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-gray-300">Before Detailing Showcase</span>
+                      <span className="text-[10px] text-gray-500 mt-1">Upload Before Image in Admin Dashboard</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
                   <div className="absolute top-4 left-4 bg-black/70 text-white text-[11px] font-heading font-bold uppercase tracking-wider py-1 px-3 rounded-full shadow">
                     Before Detailing
                   </div>
@@ -80,13 +88,21 @@ export default function BeforeAfter() {
                 </div>
 
                 {/* AFTER Card */}
-                <div className="relative h-72 md:h-80 rounded-3xl overflow-hidden shadow-xl border border-[#F4B400]/40 group">
-                  <img
-                    src={item.afterImage}
-                    alt={`${item.title} After`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-transparent to-transparent" />
+                <div className="relative h-72 md:h-80 rounded-3xl overflow-hidden shadow-xl border border-[#F4B400]/40 group bg-gray-900">
+                  {item.afterImage ? (
+                    <img
+                      src={item.afterImage}
+                      alt={`${item.title} After`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-dark text-amber-400 p-6 text-center">
+                      <CheckCircle2 size={32} className="mb-2 text-[#F4B400]" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-white">After VA Detailing Showcase</span>
+                      <span className="text-[10px] text-amber-200/70 mt-1">Upload After Image in Admin Dashboard</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-transparent to-transparent pointer-events-none" />
                   <div className="absolute top-4 left-4 bg-[#F4B400] text-dark text-[11px] font-heading font-bold uppercase tracking-wider py-1 px-3 rounded-full shadow flex items-center gap-1.5 font-extrabold">
                     <CheckCircle2 size={13} /> After VA Detailing
                   </div>

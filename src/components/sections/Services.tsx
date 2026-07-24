@@ -68,13 +68,20 @@ export default function Services() {
                 className="bg-white rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 group hover:-translate-y-2 flex flex-col justify-between w-full"
               >
                 {/* Image with icon overlay */}
-                <Link to={`/services/${service.id}`} className="relative h-44 overflow-hidden shrink-0 block">
-                  <img 
-                    src={service.image} 
-                    alt={service.name} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <Link to={`/services/${service.id}`} className="relative h-44 overflow-hidden shrink-0 block bg-gradient-to-br from-slate-800 to-slate-900">
+                  {service.image ? (
+                    <img 
+                      src={service.image} 
+                      alt={service.name} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center text-gray-400">
+                      <Sparkles size={28} className="text-[#F4B400] mb-1" />
+                      <span className="text-[11px] font-bold text-gray-200">{service.name}</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                   
                   {/* Floating Circle Icon */}
                   <div className={`absolute -bottom-4 left-6 w-10 h-10 ${iconInfo.bg} rounded-full flex items-center justify-center border-2 border-white shadow-md z-10 group-hover:rotate-12 transition-transform`}>
