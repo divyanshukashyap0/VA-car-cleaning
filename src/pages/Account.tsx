@@ -42,7 +42,7 @@ import {
 import { getCartoonAvatar, handleAvatarError } from "../utils/avatar";
 import ReviewModal from "../components/modals/ReviewModal";
 import EmployeeDashboard from "./crew/EmployeeDashboard";
-import { GoogleMapEmbed } from "../components/location/LocationPickerMap";
+import { GoogleMapEmbed, CustomerLocationPicker } from "../components/location/LocationPickerMap";
 import CloudinaryUploader from "../components/common/CloudinaryUploader";
 
 export default function Account() {
@@ -705,10 +705,19 @@ export default function Account() {
               </div>
 
               {isAddingAddr && (
-                <form onSubmit={handleAddrSubmit} className="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4 max-w-md">
+                <form onSubmit={handleAddrSubmit} className="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4 max-w-lg">
                   <h4 className="font-bold text-dark text-xs uppercase tracking-wider">Save New Address</h4>
+                  
+                  <CustomerLocationPicker
+                    onLocationSelected={(loc) => {
+                      if (loc.addressText) {
+                        setNewAddr(loc.addressText);
+                      }
+                    }}
+                  />
+
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase">Service Location Coordinates</label>
+                    <label className="text-[9px] font-bold text-gray-400 uppercase">Service Location Address / Details</label>
                     <textarea
                       required
                       rows={2}

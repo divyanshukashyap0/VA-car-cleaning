@@ -218,23 +218,21 @@ export default function BookPage() {
 
       <div className="container mx-auto px-4 py-10">
         <div className="max-w-2xl mx-auto">
-          
+
           {/* Progress Indicators */}
           {!isBooked && (
             <div className="flex items-center justify-between mb-12 max-w-xs mx-auto">
               <div className="flex flex-col items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 ${
-                  step >= 1 ? "bg-primary border-primary text-white" : "border-gray-200 text-gray-400 bg-white"
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 ${step >= 1 ? "bg-primary border-primary text-white" : "border-gray-200 text-gray-400 bg-white"
+                  }`}>
                   1
                 </div>
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Schedule</span>
               </div>
               <div className={`flex-1 h-0.5 mx-4 ${step >= 2 ? "bg-primary" : "bg-gray-200"}`} />
               <div className="flex flex-col items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 ${
-                  step >= 2 ? "bg-primary border-primary text-white" : "border-gray-200 text-gray-400 bg-white"
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 ${step >= 2 ? "bg-primary border-primary text-white" : "border-gray-200 text-gray-400 bg-white"
+                  }`}>
                   2
                 </div>
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Details</span>
@@ -309,7 +307,7 @@ export default function BookPage() {
             ) : (
               <form onSubmit={handleSubmit(onSubmit)}>
                 <AnimatePresence mode="wait">
-                  
+
                   {/* STEP 1: SCHEDULE */}
                   {step === 1 && (
                     <motion.div
