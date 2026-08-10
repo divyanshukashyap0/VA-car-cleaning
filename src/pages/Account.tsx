@@ -45,8 +45,7 @@ import {
   Tag,
   Navigation,
   Lightbulb,
-  ShieldCheck,
-  FileText
+  ShieldCheck
 } from "lucide-react";
 import {
   logAuditAction,
@@ -69,7 +68,6 @@ import EmployeeDashboard from "./crew/EmployeeDashboard";
 import { GoogleMapEmbed, CustomerLocationPicker } from "../components/location/LocationPickerMap";
 import CloudinaryUploader from "../components/common/CloudinaryUploader";
 import VehicleMediaThumbnail from "../components/ui/VehicleMediaThumbnail";
-import { downloadInvoice } from "../utils/invoiceGenerator";
 import { getBookingWhatsAppSupportUrl } from "../utils/whatsappUtils";
 
 export default function Account() {
@@ -845,18 +843,6 @@ export default function Account() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadInvoice(appt);
-                          }}
-                          className="bg-primary/10 hover:bg-primary text-primary hover:text-white font-extrabold px-3 py-1 rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer border border-primary/20"
-                          title="Download Invoice PDF"
-                        >
-                          <FileText size={12} />
-                          <span>Invoice</span>
-                        </button>
 
                         <button
                           type="button"

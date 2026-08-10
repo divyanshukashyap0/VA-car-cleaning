@@ -118,7 +118,6 @@ export interface dbBooking extends BaseDoc {
   loyaltyPointsEarned?: number;
   rating?: number;
   feedback?: string;
-  invoiceRef?: string;
   vehicleImageUrl?: string;
 }
 
@@ -170,7 +169,6 @@ export interface dbPayment extends BaseDoc {
   amount: number;
   method: string;
   razorpayId?: string;
-  invoiceUrl?: string;
   status: "Success" | "Failed" | "Refunded";
   refundStatus?: string;
   transactionDate: string;

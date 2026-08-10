@@ -43,7 +43,7 @@ export default function PrivacyPolicy() {
           <p>We use the information we collect to:</p>
           <ul>
             <li>Provide, operate, and maintain our detailing services.</li>
-            <li>Process transactions and send related information, including booking confirmations and invoices.</li>
+            <li>Process transactions and send related information, including booking confirmations.</li>
             <li>Manage your account and communicate with you about your bookings.</li>
             <li>Assign and dispatch our detailing crew to your location safely.</li>
             <li>Send you promotional emails, newsletters, and marketing materials (you can opt out at any time).</li>

@@ -21,7 +21,7 @@ service firebase.storage {
       return request.resource.contentType.matches('image/.*');
     }
 
-    // Validate PDF format (for resumes, invoices)
+    // Validate PDF format (for resumes)
     function isPDF() {
       return request.resource.contentType == 'application/pdf';
     }
@@ -60,12 +60,6 @@ service firebase.storage {
     // Documents Folder
     match /documents/{docId}/{allPaths=**} {
       allow read, write: if isAuthenticated() && (request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin');
-    }
-
-    // Invoices Folder
-    match /invoices/{invoiceId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (request.auth.token.role == 'admin' || request.auth.token.role == 'super_admin') && isLessThan5MB() && isPDF();
     }
 
     // Reviews Folder

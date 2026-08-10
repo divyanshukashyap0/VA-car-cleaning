@@ -14,8 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Headphones,
-  RefreshCw,
-  FileText
+  RefreshCw
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getBookingById, dbBooking, rescheduleBooking } from "../services/dbService";
@@ -23,7 +22,6 @@ import ReviewModal from "../components/modals/ReviewModal";
 import VehicleMediaThumbnail from "../components/ui/VehicleMediaThumbnail";
 import { CustomerLocationPicker } from "../components/location/LocationPickerMap";
 import SEO from "../components/seo/SEO";
-import { downloadInvoice } from "../utils/invoiceGenerator";
 import { getBookingWhatsAppSupportUrl } from "../utils/whatsappUtils";
 
 export default function BookingDetailsPage() {
@@ -335,13 +333,6 @@ export default function BookingDetailsPage() {
 
         {/* Action Buttons Bar */}
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => downloadInvoice(booking)}
-            className="bg-primary hover:bg-[#0b327b] text-white font-extrabold py-3.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
-          >
-            <FileText size={16} />
-            <span>Download Invoice</span>
-          </button>
 
           <button
             onClick={() => setShowReviewModal(true)}

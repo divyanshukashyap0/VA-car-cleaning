@@ -57,7 +57,6 @@ The **Desktop Admin Dashboard** serves as the central control room for Super Adm
 - **Reschedule Slot**: Modify scheduled date and time slot (e.g., `10:00 AM`, `02:00 PM`).
 - **Customer Contact**: One-touch phone call (`tel:`) trigger.
 - **Customer Location**: Direct link to customer's GPS location / Google Maps coordinates.
-- **Download & Generate Invoice**: Generate printable PDF invoice with subtotal, 18% GST calculation, and payment status badge.
 
 ### 🗑️ What Can Be Deleted
 - Cancel or invalidate invalid/duplicate bookings.
@@ -225,7 +224,7 @@ The **Desktop Admin Dashboard** serves as the central control room for Super Adm
 | Administrative Module | Create ➕ | Read 👁️ | Edit ✏️ | Delete 🗑️ | Manage / Action Controls ⚡ |
 | :--- | :---: | :---: | :---: | :---: | :--- |
 | **System Overview** | ❌ | ✅ | ❌ | ❌ | Time range filters (`Week`/`Month`/`All`) |
-| **Bookings & Slots** | ✅ | ✅ | ✅ | ✅ | Status change, Squad assignment, Reschedule date/slot, Download invoice |
+| **Bookings & Slots** | ✅ | ✅ | ✅ | ✅ | Status change, Squad assignment, Reschedule date/slot |
 | **Client Directory** | ✅ | ✅ | ✅ | ❌ | Role change (`admin`/`staff`/`customer`), Grant coupon, Loyalty points adjustment |
 | **Team Accounts** | ✅ | ✅ | ✅ | ✅ | Role & department management, Credential revocation |
 | **Crew Directory** | ✅ | ✅ | ✅ | ✅ | Status toggle (`Available`/`Busy`/`Offline`), Direct phone call |
