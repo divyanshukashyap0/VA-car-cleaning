@@ -1674,7 +1674,7 @@ export default function Admin() {
             onClick={() => setMobileDrawerOpen(true)}
             className="px-3 py-1.5 bg-[#101B2D] text-blue-400 text-[10px] font-bold rounded-xl border border-blue-500/20 flex items-center gap-1 cursor-pointer"
           >
-            <span className="capitalize">{activeTab}</span>
+            <span className="capitalize">{activeTab === "team_accounts" ? "Team Accounts" : activeTab.replace("_", " ")}</span>
             <ChevronRight size={12} />
           </button>
         </div>
@@ -1780,6 +1780,7 @@ export default function Admin() {
                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-2 block">OPERATIONS</span>
 
                     {[
+                      ...(profile?.role !== "staff" ? [{ id: "team_accounts", label: "Team Accounts", icon: ShieldCheck }] : []),
                       { id: "staff", label: "Mechanics", icon: UserCheck },
                       { id: "jobs", label: "Job Applications", badge: pendingJobs, icon: Briefcase }
                     ].map((item, idx) => {

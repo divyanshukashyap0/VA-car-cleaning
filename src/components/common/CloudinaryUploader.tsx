@@ -253,11 +253,10 @@ export default function CloudinaryUploader({
       )}
 
       <div className="relative">
-        <label className={`flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs font-bold cursor-pointer transition-colors border border-dashed ${
-          uploading
-            ? "bg-blue-50 border-blue-200 text-blue-600"
-            : "bg-gray-50 hover:bg-gray-100 border-gray-300 text-gray-600"
-        }`}>
+        <label className={`flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs font-bold cursor-pointer transition-colors border border-dashed ${uploading
+          ? "bg-blue-50 border-blue-200 text-blue-600"
+          : "bg-gray-50 hover:bg-gray-100 border-gray-300 text-gray-600"
+          }`}>
           {uploading ? (
             <>
               <Loader2 size={16} className="animate-spin text-primary" />
@@ -266,7 +265,7 @@ export default function CloudinaryUploader({
           ) : (
             <>
               <Upload size={16} className="text-primary" />
-              <span>Choose Image to Upload (JPG, PNG, WebP · Max 10MB)</span>
+              <span>Upload profile picture</span>
             </>
           )}
           <input
@@ -314,9 +313,8 @@ export default function CloudinaryUploader({
               </button>
             )}
           </div>
-          <div className={`absolute top-1.5 right-1.5 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow flex items-center gap-0.5 ${
-            uploading ? "bg-blue-500" : "bg-emerald-500"
-          }`}>
+          <div className={`absolute top-1.5 right-1.5 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow flex items-center gap-0.5 ${uploading ? "bg-blue-500" : "bg-emerald-500"
+            }`}>
             {uploading ? (
               <><Loader2 size={9} className="animate-spin" /> Uploading</>
             ) : (
@@ -330,7 +328,7 @@ export default function CloudinaryUploader({
       {value && value.startsWith("https://res.cloudinary.com/") && !uploading && (
         <div className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">
           <Check size={9} />
-          Stored as Cloudinary URL ✓
+          Stored in Va services  ✓
         </div>
       )}
     </div>
